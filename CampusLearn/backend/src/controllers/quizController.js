@@ -2,65 +2,94 @@ const Quiz = require('../models/Quiz.js');
 const Progress = require('../models/Progress.js');
 const asyncHandler = require('express-async-handler');
 
-// Get quiz for a module
+const saveQuizForModule = asyncHandler(async (courseId, levelId, moduleId, questions) => {
+  const quiz = await Quiz.create({ course: courseId, level: levelId, module: moduleId, questions });
+  return quiz;
+});
+
 const getQuiz = asyncHandler(async (req, res) => {
   const { courseId, levelId, moduleId } = req.params;
   const quiz = await Quiz.findOne({ course: courseId, level: levelId, module: moduleId });
   if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
-  res.json(quiz);
+  
+  const quizForStudent = { 
+    ...quiz.toObject(), 
+    questions: quiz.questions.map(q => ({ 
+        _id: q._id, 
+        text: q.question, 
+        options: q.options 
+    })) 
+};
+  res.json(quizForStudent);
 });
 
-// Submit quiz
 const submitQuiz = asyncHandler(async (req, res) => {
   const { courseId, levelId, moduleId } = req.params;
-  const { answers } = req.body;
+  const { answers } = req.body; 
   const studentId = req.user._id;
 
   const quiz = await Quiz.findOne({ course: courseId, level: levelId, module: moduleId });
   if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+  
+  if (!Array.isArray(answers) || answers.length !== quiz.questions.length) {
+      return res.status(400).json({ message: 'Invalid number of answers submitted.' });
+  }
 
-  // calculate score
   let correct = 0;
   quiz.questions.forEach((q, idx) => {
-    if (answers[idx] === q.answer) correct++;
+    const studentAnswer = String(answers[idx]).trim().toLowerCase();
+    const correctAnswer = String(q.answer).trim().toLowerCase();
+    if (studentAnswer === correctAnswer) correct++;
   });
   const score = (correct / quiz.questions.length) * 100;
-  const passed = score >= 50; // passing threshold
+  const passed = score >= 50;
 
-  // update progress
   const progress = await Progress.findOne({ student: studentId, course: courseId });
-  
-    // Handle case where progress document might not exist
-    if (!progress) return res.status(404).json({ message: 'Progress not found for student and course' });
-    
-  const levelProgress = progress.levels.find(l => String(l.levelId) === levelId);
-    
-    // Handle case where level progress might not exist
-    if (!levelProgress) return res.status(404).json({ message: 'Level progress not found' });
-    
-  const moduleProgress = levelProgress.modules.find(m => String(m.moduleId) === moduleId);
-    
-    // Handle case where module progress might not exist
-    if (!moduleProgress) return res.status(404).json({ message: 'Module progress not found' });
+  if (!progress) return res.status(404).json({ message: 'Progress not found. Please enroll first.' });
 
-  // check last attempt
+  const levelProgress = progress.levels.find(l => String(l.levelId) === levelId);
+  if (!levelProgress) return res.status(404).json({ message: 'Level progress not found' });
+
+  const moduleProgress = levelProgress.modules.find(m => String(m.moduleId) === moduleId);
+  if (!moduleProgress) return res.status(404).json({ message: 'Module progress not found' });
+
   const now = new Date();
-  if (moduleProgress.lastAttempt && now - moduleProgress.lastAttempt < 24*60*60*1000 && !moduleProgress.passed) {
-    return res.status(403).json({ message: 'Retake allowed only after 24 hours' });
+  
+  if (moduleProgress.lastAttempt) {
+    const timeElapsed = now.getTime() - moduleProgress.lastAttempt.getTime();
+    if (timeElapsed < 24 * 60 * 60 * 1000 && !moduleProgress.passed) {
+      return res.status(403).json({ message: 'Retake allowed only after 24 hours' });
+    }
   }
 
   moduleProgress.passed = passed;
   moduleProgress.score = score;
   moduleProgress.lastAttempt = now;
-  if (passed) moduleProgress.completed = true; // unlock next module
+  
+  if (passed) {
+    moduleProgress.completed = true; 
+    moduleProgress.completedAt = now;
+  }
+
+  progress.markModified('levels');
 
   await progress.save();
-  res.json({ score, passed });
+  res.json({ score, passed, message: passed ? 'Quiz passed! Module marked complete.' : 'Quiz failed. Try again after 24 hours.' });
 });
 
+const updateQuiz = asyncHandler(async (req, res) => {
+  const { courseId, levelId, moduleId } = req.params;
+  const { questions } = req.body;
 
-// Export functions using CommonJS module.exports
-module.exports = {
-    getQuiz,
-    submitQuiz
-};
+  let quiz = await Quiz.findOne({ course: courseId, level: levelId, module: moduleId });
+  if (!quiz) {
+    quiz = await Quiz.create({ course: courseId, level: levelId, module: moduleId, questions });
+  } else {
+    quiz.questions = questions;
+    await quiz.save();
+  }
+
+  res.json(quiz);
+});
+
+module.exports = { getQuiz, submitQuiz, saveQuizForModule, updateQuiz };

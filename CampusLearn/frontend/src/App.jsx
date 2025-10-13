@@ -9,6 +9,8 @@ import CreateCourse from './pages/Admin/CreateCourse';
 import ManageCourse from './pages/admin/ManageCourse';
 import EnrolledCourses from './pages/Student/EnrolledCourses';
 import CourseView from './pages/Student/CourseView';
+import QuizPage from './pages/Student/QuizPage';
+import ManageQuiz from './pages/admin/ManageQuiz';
 
 export default function App() {
   return (
@@ -36,6 +38,15 @@ export default function App() {
 <Route element={<ProtectedRoute allowedRoles={['student']} />}>
   <Route path="/student/courses" element={<EnrolledCourses />} />
   <Route path="/student/course/:id" element={<CourseView />} />
+   <Route
+    path="/student/course/:courseId/level/:levelId/module/:moduleId/quiz"
+    element={<QuizPage />}
+  />
+  <Route
+  path="/admin/course/:courseId/level/:levelId/module/:moduleId/quiz"
+  element={<ManageQuiz />}
+/>
+
 </Route>
 
       <Route path="*" element={<div>Not Found</div>} />

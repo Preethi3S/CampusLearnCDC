@@ -1,15 +1,33 @@
 import axios from 'axios';
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000/api/quizzes';
 
-const withToken = (token) => (token ? { headers: { Authorization: `Bearer ${token}` } } : {});
-
-export default {
-  getQuiz: async (courseId, levelId, moduleId, token) => {
-    const res = await axios.get(`${API_BASE}/quizzes/${courseId}/${levelId}/${moduleId}`, withToken(token));
+const quizApi = {
+  getQuiz: async (courseId, levelId, moduleId, token) => {
+    const res = await axios.get(`${API_URL}/${courseId}/${levelId}/${moduleId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  },
+  
+  // 🎯 CRITICAL FIX: Add the missing submitQuiz function
+  submitQuiz: async (courseId, levelId, moduleId, answers, token) => {
+    // Submitting a quiz uses POST to the same endpoint
+    const res = await axios.post(
+      `${API_URL}/${courseId}/${levelId}/${moduleId}`,
+      { answers }, // Send the answers array in the request body
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return res.data;
   },
-  submitQuiz: async (courseId, levelId, moduleId, answers, token) => {
-    const res = await axios.post(`${API_BASE}/quizzes/${courseId}/${levelId}/${moduleId}`, { answers }, withToken(token));
-    return res.data;
-  }
+
+  updateQuiz: async (courseId, levelId, moduleId, questions, token) => {
+    const res = await axios.put(
+      `${API_URL}/${courseId}/${levelId}/${moduleId}`,
+      { questions },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res.data;
+  },
 };
+
+export default quizApi;
