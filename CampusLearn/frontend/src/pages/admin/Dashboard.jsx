@@ -107,7 +107,7 @@ export default function AdminDashboard() {
       {loading && <p>Loading courses...</p>}
       {error && <p style={{ color: DANGER_COLOR }}>Error: {error}</p>}
 
-      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(3, minmax(300px, 1fr))' }}>
         {items.length === 0 && !loading && <p>No courses have been created yet.</p>}
     {items.map(c => <CourseCard key={c._id} course={c} onDelete={handleDelete} onUpdated={() => dispatch(fetchCourses())} />)}
       </div>
