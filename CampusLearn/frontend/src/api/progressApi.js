@@ -17,8 +17,9 @@ export default {
     const res = await instance.get(`/progress/${courseId}`, withToken(token));
     return res.data;
   },
-  completeModule: async (courseId, levelId, moduleId, token) => {
-    const res = await instance.post(`/progress/${courseId}/levels/${levelId}/modules/${moduleId}/complete`, {}, withToken(token));
+  completeModule: async (courseId, levelId, moduleId, token, evidence) => {
+    const body = evidence || {};
+    const res = await instance.post(`/progress/${courseId}/levels/${levelId}/modules/${moduleId}/complete`, body, withToken(token));
     return res.data;
   }
 };
