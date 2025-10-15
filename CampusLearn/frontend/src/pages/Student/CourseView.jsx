@@ -58,8 +58,8 @@ export default function CourseView() {
   return (
     <div style={{ padding: '20px', backgroundColor: SOFT_BACKGROUND, minHeight: '100vh' }}>
       <h1 style={{ color: PRIMARY_COLOR, borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, paddingBottom: 10 }}>
-          {progress.course.title}
-      </h1>
+          {progress.course.title}
+      </h1>
       <p style={{ color: MUTE_GRAY, marginBottom: 30 }}>{progress.course.description}</p>
       
       {progress.levels.map((levelProgress, levelIndex) => {
@@ -74,22 +74,22 @@ export default function CourseView() {
             allPreviousLevelsCompleted = false;
         }
 
-        // --- LOCKED LEVEL RENDER ---
+        // --- LOCKED LEVEL RENDER (No Change) ---
         if (levelIsLocked) {
             return (
                 <div 
-                    key={levelProgress.levelId} 
-                    style={{ 
-                        marginBottom: 24, 
-                        padding: 20, 
-                        border: `1px solid ${SOFT_BORDER_COLOR}`, 
-                        borderRadius: 8, 
-                        background: WHITE, 
-                        opacity: 0.7, // Muted look
-                        color: MUTE_GRAY,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                    }}
-                >
+                    key={levelProgress.levelId} 
+                    style={{ 
+                        marginBottom: 24, 
+                        padding: 20, 
+                        border: `1px solid ${SOFT_BORDER_COLOR}`, 
+                        borderRadius: 8, 
+                        background: WHITE, 
+                        opacity: 0.7, 
+                        color: MUTE_GRAY,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}
+                >
                     <h3>{courseLevel.title} - Locked 🔒</h3>
                     <p style={{ margin: 0, fontSize: '0.9em' }}>Complete the previous level to unlock this content.</p>
                 </div>
@@ -99,23 +99,23 @@ export default function CourseView() {
         // --- UNLOCKED LEVEL RENDER ---
         return (
           <div 
-                key={levelProgress.levelId} 
-                style={{ 
-                    marginBottom: 24, 
-                    padding: 20, 
-                    border: `1px solid ${SOFT_BORDER_COLOR}`, 
-                    borderRadius: 8, 
-                    background: WHITE, 
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)' 
-                }}
-            >
+                key={levelProgress.levelId} 
+                style={{ 
+                    marginBottom: 24, 
+                    padding: 20, 
+                    border: `1px solid ${SOFT_BORDER_COLOR}`, 
+                    borderRadius: 8, 
+                    background: WHITE, 
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)' 
+                }}
+            >
             <h3 
-                style={{ 
-                    borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, 
-                    paddingBottom: 10, 
-                    marginBottom: 20,
-                    color: PRIMARY_COLOR // Level title in MongoDB color
-                }}>
+                style={{ 
+                    borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, 
+                    paddingBottom: 10, 
+                    marginBottom: 20,
+                    color: PRIMARY_COLOR 
+                }}>
                 {courseLevel.title} 
                 {allModulesCompletedInCurrentLevel ? <span style={{ color: SUCCESS_COLOR, marginLeft: 8 }}>✅</span> : ''}
             </h3>
@@ -128,19 +128,31 @@ export default function CourseView() {
               const completed = modProgress.completed;
               const locked = index > 0 && !levelProgress.modules[index - 1].completed;
               
+              // Function to handle completion specifically for the video player's 'onEnd' event
+              const onVideoEnd = () => {
+                if (!completed) {
+                    completeModule(levelProgress.levelId, modProgress.moduleId);
+                }
+              };
+              
+              // New Logic: Check if the resource module contains a YouTube URL
+              const isVideoResource = moduleData.type === 'resource' && moduleData.content?.url?.includes('youtube.com');
+
               const moduleProps = {
                 module: moduleData,
                 completed: completed,
                 locked: locked,
-                onComplete: () => completeModule(levelProgress.levelId, modProgress.moduleId),
+                onComplete: () => completeModule(levelProgress.levelId, modProgress.moduleId), // Manual handler
+                onVideoEnd: onVideoEnd, // 👈 Auto-completion handler for ModuleCard
                 courseId: id,
                 levelId: levelProgress.levelId,
                 moduleId: modProgress.moduleId,
+                isRestrictedVideo: isVideoResource, // 👈 New prop
               };
 
               return (
                 <div key={modProgress.moduleId} style={{ marginBottom: 16 }}>
-                    {/* ModuleCard handles its own internal lock display */}
+                    
                   {moduleData.type !== 'coding' && (
                     <ModuleCard {...moduleProps} />
                   )}
@@ -148,11 +160,10 @@ export default function CourseView() {
                   {moduleData.type === 'coding' && !locked && (
                     <CodingLinks {...moduleProps} content={moduleData.content} />
                   )}
-                    
-                    {/* FIX: Move the locked coding module display to ModuleCard.js for consistency */}
-                    {moduleData.type === 'coding' && locked && (
-                        <ModuleCard {...moduleProps} />
-                    )}
+                    
+                    {moduleData.type === 'coding' && locked && (
+                        <ModuleCard {...moduleProps} />
+                    )}
 
                 </div>
               );
@@ -161,5 +172,5 @@ export default function CourseView() {
         );
       })}
     </div>
-  );
+ );
 }
