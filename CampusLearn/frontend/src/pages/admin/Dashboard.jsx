@@ -73,81 +73,104 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ padding: 30, background: SOFT_BG, minHeight: '100vh' }}>
-      <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, 
-          paddingBottom: 10, 
-          marginBottom: 20 
-      }}>
-        <h2 style={{ 
-            color: PRIMARY_COLOR, 
-            margin: 0
+        {/* --- Header Section --- */}
+        <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, 
+            paddingBottom: 10, 
+            marginBottom: 20 
         }}>
-          Admin Dashboard
-
-      </h2>
-      
-            <div style={{ marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <Link to="/admin/create-course" style={{ textDecoration: 'none' }}>
-                        <button style={buttonPrimaryStyle}>+ Create New Course</button>
-                    </Link>
-                    <button
-                        style={{ ...buttonPrimaryStyle, background: '#A63E3E' }}
-                        onClick={() => { dispatch(logout()); navigate('/login'); }}
-                    >
-                        Logout
-                    </button>
+            <h2 style={{ 
+                color: PRIMARY_COLOR, 
+                margin: 0
+            }}>
+                Admin Dashboard
+            </h2>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <Link to="/admin/create-course" style={{ textDecoration: 'none' }}>
+                    <button style={buttonPrimaryStyle}>+ Create New Course</button>
+                </Link>
+                {/* Applied buttonLogoutStyle and consolidated logout logic */}
+                <button
+                    style={buttonLogoutStyle} 
+                    onClick={handleLogout}
+                >
+                    Logout
+                </button>
+            </div>
+        </div>
+        {/* --- Controls, Stats, and Filter Section --- */}
+        <div style={{ 
+            marginBottom: 25, 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            gap: 20,
+            flexWrap: 'wrap' // Allows wrapping on smaller screens
+        }}>
+            {/* Stats */}
+            <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, color: '#6B7280' }}>Total</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: PRIMARY_COLOR }}>{stats.total}</div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                        <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, color: '#6B7280' }}>Total</div>
-                            <div style={{ fontSize: 18, fontWeight: 700, color: PRIMARY_COLOR }}>{stats.total}</div>
-                        </div>
-                        <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, color: '#6B7280' }}>Published</div>
-                            <div style={{ fontSize: 18, fontWeight: 700, color: '#0EA5A4' }}>{stats.published}</div>
-                        </div>
-                        <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, color: '#6B7280' }}>Unpublished</div>
-                            <div style={{ fontSize: 18, fontWeight: 700, color: '#F97316' }}>{stats.unpublished}</div>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <input placeholder="Search courses" value={query} onChange={(e) => setQuery(e.target.value)} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #e6e6e6' }} />
-                        <label style={{ fontSize: 13, color: '#475569', display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <input type="checkbox" checked={showPublishedOnly} onChange={() => setShowPublishedOnly(v => !v)} /> Published only
-                        </label>
-                        <button onClick={() => dispatch(fetchCourses())} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #e6e6e6', background: '#fff', cursor: 'pointer' }}>Refresh</button>
-                    </div>
+                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, color: '#6B7280' }}>Published</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0EA5A4' }}>{stats.published}</div>
+                </div>
+                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, color: '#6B7280' }}>Unpublished</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#F97316' }}>{stats.unpublished}</div>
                 </div>
             </div>
 
+            {/* Search, Filter, and Refresh */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input 
+                    placeholder="Search courses" 
+                    value={query} 
+                    onChange={(e) => setQuery(e.target.value)} 
+                    style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #e6e6e6' }} 
+                />
+                <label style={{ fontSize: 13, color: '#475569', display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
+                    <input 
+                        type="checkbox" 
+                        checked={showPublishedOnly} 
+                        onChange={() => setShowPublishedOnly(v => !v)} 
+                    /> Published only
+                </label>
+                <button 
+                    onClick={() => dispatch(fetchCourses())} 
+                    style={{ 
+                        padding: '8px 12px', 
+                        borderRadius: 6, 
+                        border: '1px solid #e6e6e6', 
+                        background: '#fff', 
+                        cursor: 'pointer' 
+                    }}>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        {/* --- Course List Section --- */}
       {loading && <p>Loading courses...</p>}
       {error && <p style={{ color: DANGER_COLOR }}>Error: {error}</p>}
 
-      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(3, minmax(300px, 1fr))' }}>
-        {items.length === 0 && !loading && <p>No courses have been created yet.</p>}
-    {items.map(c => <CourseCard key={c._id} course={c} onDelete={handleDelete} onUpdated={() => dispatch(fetchCourses())} />)}
-      </div>
-
-
-      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-        {items.length === 0 && !loading && <p>No courses have been created yet.</p>}
-        {items.map(c => (
+        {/* This is the corrected and single block for displaying courses using `filtered` */}
+      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+        {filtered.length === 0 && !loading && <p>No courses found matching your criteria.</p>}
+        {filtered.map(c => (
             <CourseCard 
                 key={c._id} 
                 course={c} 
                 onDelete={handleDelete} 
+                onUpdated={() => dispatch(fetchCourses())} // Added onUpdated back for full functionality
             />
         ))}
-      </div>
-    </div>
+      </div>
     </div>
   );
 }
