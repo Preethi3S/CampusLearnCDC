@@ -15,9 +15,9 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 const { allowRoles } = require('../middleware/roleMiddleware');
 
-// Public: list or get single
-router.get('/', protect, getCourses); // you can show only logged-in users; modify as needed
-router.get('/:id', protect, getCourseById);
+// Public: list or get single (keep these public so the frontend can show available courses to visitors)
+router.get('/', getCourses);
+router.get('/:id', getCourseById);
 
 // Admin routes
 router.post('/', protect, allowRoles('admin'), createCourse);

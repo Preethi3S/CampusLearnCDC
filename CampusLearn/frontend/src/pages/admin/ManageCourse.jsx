@@ -184,6 +184,21 @@ export default function ManageCourse() {
       });
   };
 
+    const handleRemoveModule = async (levelId, moduleId) => {
+        if (!window.confirm('Remove this module? This action cannot be undone.')) return;
+        try {
+            setLoading(true);
+            const updated = await courseApi.removeModule(id, levelId, moduleId, token);
+            setCourse(updated);
+            setError(null);
+        } catch (err) {
+            console.error(err);
+            setError('Failed to remove module.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
   if (loading || !course) return <p>Loading...</p>;
 
   return (
@@ -334,22 +349,25 @@ export default function ManageCourse() {
           </div>
 
           {/* Existing Modules List */}
-          <ul style={{ listStyle: 'none', padding: 0, marginTop: 20 }}>
-            {level.modules.map(mod => (
-              <li key={mod._id} style={{ padding: 10, borderLeft: `4px solid ${ACCENT_COLOR}`, margin: '8px 0', background: SOFT_BG, borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
-                <div>
-                  <strong>{mod.title}</strong> (<span style={{ color: PRIMARY_COLOR, fontWeight: 500 }}>{mod.type}</span>)
-                  <small style={{ color: '#666', marginLeft: 10 }}>
-                    {mod.type === 'quiz' && ` • Questions: ${Array.isArray(mod.content) ? mod.content.length : 0}`} 
-                    {mod.type === 'coding' && ` • Links: ${Array.isArray(mod.content) ? mod.content.length : 0}`}
-                  </small>
-                </div>
-                <span style={{ color: mod.locked ? DANGER_COLOR : ACCENT_COLOR, fontWeight: 'bold' }}>
-                  {mod.locked ? 'Locked 🔒' : 'Unlocked 🔓'}
-                </span>
-              </li>
-            ))}
-          </ul>
+                    <ul style={{ listStyle: 'none', padding: 0, marginTop: 20 }}>
+                        {level.modules.map(mod => (
+                            <li key={mod._id} style={{ padding: 10, borderLeft: `4px solid ${ACCENT_COLOR}`, margin: '8px 0', background: SOFT_BG, borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <strong>{mod.title}</strong> (<span style={{ color: PRIMARY_COLOR, fontWeight: 500 }}>{mod.type}</span>)
+                                    <small style={{ color: '#666', marginLeft: 10 }}>
+                                        {mod.type === 'quiz' && ` • Questions: ${Array.isArray(mod.content) ? mod.content.length : 0}`} 
+                                        {mod.type === 'coding' && ` • Links: ${Array.isArray(mod.content) ? mod.content.length : 0}`}
+                                    </small>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <span style={{ color: mod.locked ? DANGER_COLOR : ACCENT_COLOR, fontWeight: 'bold' }}>
+                                        {mod.locked ? 'Locked 🔒' : 'Unlocked 🔓'}
+                                    </span>
+                                    <button onClick={() => handleRemoveModule(level._id, mod._id)} style={buttonDangerStyle}>Remove Module</button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
         </div>
       ))}
     </div>

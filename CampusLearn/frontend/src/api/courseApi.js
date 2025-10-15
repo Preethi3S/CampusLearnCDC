@@ -42,4 +42,9 @@ export default {
     const res = await instance.post(`/courses/${courseId}/levels/${levelId}/modules`, modulePayload, withToken(token));
     return res.data;
   }
+,
+  removeModule: async (courseId, levelId, moduleId, token) => {
+    const res = await instance.delete(`/courses/${courseId}/levels/${levelId}/modules/${moduleId}`, withToken(token));
+    return res.data;
+  }
 };
