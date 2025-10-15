@@ -2,8 +2,10 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCourses, deleteCourse } from '../../features/courses/courseSlice';
 import CourseCard from '../../components/CourseCard';
+
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../../features/auth/authSlice';
+
 
 // --- THEME CONSTANTS ---
 const PRIMARY_COLOR = '#473E7A'; // MongoDB Purple
@@ -23,17 +25,26 @@ const buttonPrimaryStyle = {
     transition: 'background-color 0.2s',
 };
 
+const buttonLogoutStyle = { // 👈 New style for Logout button
+    ...buttonPrimaryStyle,
+    background: DANGER_COLOR,
+    marginLeft: 15,
+};
+
 export default function AdminDashboard() {
+
   const dispatch = useDispatch();
   const { items, loading, error } = useSelector(s => s.courses);
   const auth = useSelector(s => s.auth);
     const navigate = useNavigate();
     const [query, setQuery] = useState('');
     const [showPublishedOnly, setShowPublishedOnly] = useState(false);
+  
 
-  useEffect(() => {
-    dispatch(fetchCourses());
-  }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchCourses());
+  }, [dispatch]);
+
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -54,15 +65,28 @@ export default function AdminDashboard() {
     dispatch(deleteCourse(id));
   };
 
-  return (
-    <div style={{ padding: 30, background: SOFT_BG, minHeight: '100vh' }}>
-      <h2 style={{ 
-          color: PRIMARY_COLOR, 
+
+  const handleLogout = () => { // 👈 New handler for logout
+    dispatch(logout()); // Dispatch the logout action
+    navigate('/'); // Redirect to the home page or login page after logout
+  };
+
+  return (
+    <div style={{ padding: 30, background: SOFT_BG, minHeight: '100vh' }}>
+      <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
           borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, 
           paddingBottom: 10, 
           marginBottom: 20 
       }}>
+        <h2 style={{ 
+            color: PRIMARY_COLOR, 
+            margin: 0
+        }}>
           Admin Dashboard
+
       </h2>
       
             <div style={{ marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -112,6 +136,17 @@ export default function AdminDashboard() {
     {items.map(c => <CourseCard key={c._id} course={c} onDelete={handleDelete} onUpdated={() => dispatch(fetchCourses())} />)}
       </div>
 
-    </div>
-  );
+
+      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+        {items.length === 0 && !loading && <p>No courses have been created yet.</p>}
+        {items.map(c => (
+            <CourseCard 
+                key={c._id} 
+                course={c} 
+                onDelete={handleDelete} 
+            />
+        ))}
+      </div>
+    </div>
+  );
 }
