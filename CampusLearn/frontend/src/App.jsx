@@ -11,6 +11,8 @@ import EnrolledCourses from './pages/Student/EnrolledCourses';
 import CourseView from './pages/Student/CourseView';
 import QuizPage from './pages/Student/QuizPage';
 import ManageQuiz from './pages/admin/ManageQuiz';
+import AdminMessageBoard from './pages/admin/AdminMessageBoard';
+import StudentMessageBoard from './pages/Student/StudentMessageBoard';
 
 export default function App() {
   return (
@@ -48,6 +50,15 @@ export default function App() {
 />
 
 </Route>
+
+<Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+  <Route path="/admin/messages" element={<AdminMessageBoard />} />
+</Route>
+
+<Route element={<ProtectedRoute allowedRoles={['student']} />}>
+  <Route path="/student/messages" element={<StudentMessageBoard />} />
+</Route>
+
 
       <Route path="*" element={<div>Not Found</div>} />
     </Routes>
