@@ -20,13 +20,13 @@ export default function CourseCard({ course, onDelete, onUpdated }) {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      minHeight: 150
+      minHeight: 200
     }}>
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <h3 style={{ margin: 0, color: '#1F2937' }}>{course.title}</h3>
-            <p style={{ margin: '6px 0 0', color: '#374151', fontSize: 14 }}>{course.description || 'No description'}</p>
+            <p style={{ margin: '6px 15x 0', color: '#374151', fontSize: 14 }}>{course.description || 'No description'}</p>
           </div>
 
           <div style={{ marginLeft: 12, textAlign: 'right' }}>
@@ -36,7 +36,7 @@ export default function CourseCard({ course, onDelete, onUpdated }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 10, display: 'flex', gap: 12, alignItems: 'center', color: '#6B7280', fontSize: 13 }}>
+        <div style={{ marginTop: 45, display: 'flex', gap: 25, alignItems: 'center', color: '#6B7280', fontSize: 13 }}>
           <div>Levels: <strong style={{ color: '#111827' }}>{levels}</strong></div>
           <div>Modules: <strong style={{ color: '#111827' }}>{moduleCount}</strong></div>
           <div>By: <strong style={{ color: '#111827' }}>{course.createdBy?.name || '—'}</strong></div>
