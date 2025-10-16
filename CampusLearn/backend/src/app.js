@@ -19,7 +19,7 @@ app.use(morgan('dev'));
 // routes
 app.use('/api/auth', authRoutes);
 
-// basic health
+// Basic health
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date() }));
 
 app.use('/api/courses', courseRoutes);
