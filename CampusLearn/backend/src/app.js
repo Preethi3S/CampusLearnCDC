@@ -6,26 +6,30 @@ const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const progressRoutes = require('./routes/progressRoutes');
 const quizRoutes = require('./routes/quizRoutes');
-const userRoutes = require('./routes/userRoutes');
 
 
 const app = express();
+app.options('*', cors());
 
 // middlewares
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+}));
+
 app.use(morgan('dev'));
 
 // routes
 app.use('/api/auth', authRoutes);
 
-// basic health
+// Basic health
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date() }));
 
 app.use('/api/courses', courseRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/quizzes', quizRoutes);
-app.use('/api/users', userRoutes);
 
 // error handler (simple)
 app.use((err, req, res, next) => {
