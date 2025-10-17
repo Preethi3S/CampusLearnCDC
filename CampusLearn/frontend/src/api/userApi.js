@@ -13,16 +13,34 @@ console.log('API Base URL:', API_URL);
 const getUsers = async (token, role) => {
   try {
     const url = role ? `${USERS_ENDPOINT}?role=${encodeURIComponent(role)}` : USERS_ENDPOINT;
+    console.log('Fetching users from:', url); // Debug log
     const response = await axios.get(url, { 
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
-      }
+      },
+      timeout: 10000 // 10 second timeout
     });
+    
+    if (!Array.isArray(response.data)) {
+      console.error('Unexpected response format:', response.data);
+      throw new Error('Invalid response format: expected an array of users');
+    }
+    
+    console.log('Fetched users:', response.data.length); // Debug log
     return response.data;
   } catch (error) {
-    console.error('Error fetching users:', error);
-    handleApiError(error, 'Failed to fetch users');
+    console.error('Error in getUsers:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      }
+    });
+    throw error; // Re-throw to be handled by the component
   }
 };
 
