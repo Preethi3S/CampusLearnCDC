@@ -1,13 +1,15 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCourses, deleteCourse } from '../../features/courses/courseSlice';
-import CourseCard from '../../components/CourseCard';
+import CourseCard from '../../components/CourseCard'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../../features/auth/authSlice';
 import userApi from '../../api/userApi';
 import AdminMessageBoard from './AdminMessageBoard';
 
-const PRIMARY_COLOR = '#473E7A';
+// --- THEME CONSTANTS ---
+const PRIMARY_COLOR = '#473E7A'; // MongoDB Purple
+const ACCENT_COLOR = '#4B6CB7';
 const SOFT_BG = '#F8F8F8';
 const WHITE = '#FFFFFF';
 const DANGER_COLOR = '#E53935';
@@ -15,29 +17,58 @@ const MUTE_GRAY = '#6B7280';
 const SUCCESS_COLOR = '#10B981';
 const SOFT_BORDER_COLOR = '#EBEBEB';
 
-const buttonPrimaryStyle = {
-    background: PRIMARY_COLOR,
-    color: WHITE,
-    padding: '12px 20px',
+// --- STYLES ---
+const buttonBaseStyle = {
+    padding: '10px 18px',
     borderRadius: 6,
     border: 'none',
     fontWeight: 'bold',
     cursor: 'pointer',
     transition: 'all 0.2s',
+    fontSize: 14,
 };
 
-const buttonLogoutStyle = { ...buttonPrimaryStyle, background: DANGER_COLOR };
-const buttonDangerSmallStyle = {
-    background: DANGER_COLOR,
-    color: WHITE,
-    padding: '6px 12px',
-    borderRadius: 4,
-    border: 'none',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s',
+const getStatusDisplay = (status) => {
+    switch (status) {
+        case 'approved':
+            return { text: 'Approved', color: SUCCESS_COLOR, bg: '#E6F6EC' };
+        case 'rejected':
+            return { text: 'Rejected', color: DANGER_COLOR, bg: '#FEE2E2' };
+        case 'pending':
+        default:
+            return { text: 'Pending Approval', color: '#D97706', bg: '#FEF3C7' };
+    }
 };
+
+const statusBadgeStyle = (color, bg) => ({
+    display: 'inline-block',
+    padding: '4px 10px',
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: 500,
+    minWidth: '90px',
+    textAlign: 'center',
+    backgroundColor: bg,
+    color: color,
+});
+
+const getSidebarItemStyle = (isActive) => ({
+    padding: '12px 16px',
+    borderRadius: 8,
+    backgroundColor: isActive ? ACCENT_COLOR : 'transparent',
+    color: isActive ? WHITE : PRIMARY_COLOR,
+    fontWeight: isActive ? 'bold' : '500',
+    border: 'none',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'all 0.2s',
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    position: 'relative',
+});
+
 
 export default function AdminDashboard() {
     const dispatch = useDispatch();
@@ -53,61 +84,50 @@ export default function AdminDashboard() {
     const [studentsError, setStudentsError] = useState(null);
     const [studentSearchQuery, setStudentSearchQuery] = useState('');
     const [deletingStudentId, setDeletingStudentId] = useState(null);
-    const [pendingApprovals, setPendingApprovals] = useState([]);
     const [pendingCount, setPendingCount] = useState(0);
     const [approvalsLoading, setApprovalsLoading] = useState(false);
 
-    // Load courses and students
+    // --- Data Loaders ---
+    const loadStudentsAndApprovals = useCallback(async () => {
+        if (!auth?.user || auth.user.role !== 'admin' || !auth.token) {
+            return;
+        }
+
+        // Load Students
+        setStudentsLoading(true);
+        try {
+            const response = await userApi.getUsers(auth.token, 'student');
+            const studentsList = Array.isArray(response) ? response : [];
+            setStudents(studentsList);
+            setStudentsError(null);
+        } catch (err) {
+            setStudentsError(err.response?.data?.message || 'Failed to load students');
+            setStudents([]);
+        } finally {
+            setStudentsLoading(false);
+        }
+
+        // Load Pending Approvals (for the badge count)
+        setApprovalsLoading(true);
+        try {
+            const response = await userApi.getPendingApprovals(auth.token);
+            const pendingList = Array.isArray(response) ? response : [];
+            setPendingCount(pendingList.length);
+        } catch (err) {
+            console.error('Error loading pending approvals:', err);
+            setPendingCount(0);
+        } finally {
+            setApprovalsLoading(false);
+        }
+    }, [auth.user, auth.token]);
+    
     useEffect(() => {
         dispatch(fetchCourses());
+        loadStudentsAndApprovals();
+    }, [dispatch, loadStudentsAndApprovals]);
 
-        const loadStudents = async () => {
-            if (!auth?.user || auth.user.role !== 'admin') {
-                console.log('Not loading students: User not authenticated or not admin');
-                return;
-            }
-            
-            console.log('Loading students...');
-            setStudentsLoading(true);
-            try {
-                console.log('Calling userApi.getUsers...');
-                const response = await userApi.getUsers(auth.token, 'student');
-                console.log('API Response:', response);
-                const studentsList = Array.isArray(response) ? response : [];
-                console.log('Setting students list:', studentsList);
-                setStudents(studentsList);
-                setStudentsError(null);
-            } catch (err) {
-                setStudentsError(err.response?.data?.message || err.message || 'Failed to load students');
-                setStudents([]);
-            } finally {
-                console.log('Finished loading students');
-                setStudentsLoading(false);
-            }
-        };
 
-        const loadPendingApprovals = async () => {
-            if (!auth?.user || auth.user.role !== 'admin') return;
-            
-            setApprovalsLoading(true);
-            try {
-                const response = await userApi.getPendingApprovals(auth.token);
-                const pendingList = Array.isArray(response) ? response : [];
-                setPendingApprovals(pendingList);
-                setPendingCount(pendingList.length);
-            } catch (err) {
-                console.error('Error loading pending approvals:', err);
-                setPendingApprovals([]);
-                setPendingCount(0);
-            } finally {
-                setApprovalsLoading(false);
-            }
-        };
-        
-        loadStudents();
-        loadPendingApprovals();
-    }, [dispatch, auth?.user, auth?.token]);
-
+    // --- Data Filtering and Memoization ---
     const filteredCourses = useMemo(() => {
         let list = Array.isArray(items) ? [...items] : [];
         if (showPublishedOnly) list = list.filter(c => c.isPublished);
@@ -133,12 +153,13 @@ export default function AdminDashboard() {
         unpublished: items.filter(c => !c.isPublished).length,
     }), [items]);
 
+    // --- Action Handlers ---
     const handleDeleteCourse = (id) => {
-        if (window.confirm('Delete this course?')) dispatch(deleteCourse(id));
+        if (window.confirm('Delete this course? This action cannot be undone.')) dispatch(deleteCourse(id));
     };
 
     const handleDeleteStudent = async (studentId, studentName) => {
-        if (!window.confirm(`Remove ${studentName}? This cannot be undone.`)) return;
+        if (!window.confirm(`Remove ${studentName}? This will permanently delete their account and progress.`)) return;
         setDeletingStudentId(studentId);
         try {
             await userApi.deleteUser(auth.token, studentId);
@@ -149,82 +170,34 @@ export default function AdminDashboard() {
             setDeletingStudentId(null);
         }
     };
-
-    const updateStudentStatus = async (studentId, status) => {
-        try {
-            if (status === 'approved') {
-                await userApi.approveUser(auth.token, studentId);
-            } else if (status === 'rejected') {
-                await userApi.rejectUser(auth.token, studentId, 'Rejected by admin');
-            } else {
-                throw new Error('Invalid status update');
-            }
-            
-            // Update local state
-            setStudents(prev => 
-                prev.map(s => 
-                    s._id === studentId ? { ...s, status } : s
-                )
-            );
-            
-            // Update pending approvals count
-            if (status === 'approved' || status === 'rejected') {
-                setPendingCount(prev => Math.max(0, prev - 1));
-            }
-            
-            return true;
-        } catch (err) {
-            console.error(`Error updating student status to ${status}:`, err);
-            const errorMessage = err.response?.data?.message || err.message || `Failed to ${status} student`;
-            alert(errorMessage);
-            return false;
-        }
-    };
-
+    
     const handleApproveStudent = async (studentId) => {
         try {
             await userApi.approveUser(auth.token, studentId);
-            // Refresh the students list to reflect the change
-            const response = await userApi.getUsers(auth.token, 'student');
-            setStudents(Array.isArray(response) ? response : []);
-            // Update pending count
+            setStudents(prev => 
+                prev.map(s => s._id === studentId ? { ...s, status: 'approved' } : s)
+            );
             setPendingCount(prev => Math.max(0, prev - 1));
         } catch (err) {
             console.error('Error approving student:', err);
-            const errorMessage = err.response?.data?.message || err.message || 'Failed to approve student';
-            alert(errorMessage);
+            alert(err.response?.data?.message || 'Failed to approve student');
         }
     };
 
     const handleRejectStudent = async (studentId) => {
-        if (!window.confirm('Are you sure you want to reject this student? They will lose access to their account.')) {
+        if (!window.confirm('Are you sure you want to reject this student? Their account will be deactivated.')) {
             return;
         }
         
         try {
             await userApi.rejectUser(auth.token, studentId, 'Rejected by admin');
-            // Refresh the students list to reflect the change
-            const response = await userApi.getUsers(auth.token, 'student');
-            setStudents(Array.isArray(response) ? response : []);
-            // Update pending count
+            setStudents(prev => 
+                prev.map(s => s._id === studentId ? { ...s, status: 'rejected' } : s)
+            );
             setPendingCount(prev => Math.max(0, prev - 1));
         } catch (err) {
             console.error('Error rejecting student:', err);
-            const errorMessage = err.response?.data?.message || err.message || 'Failed to reject student';
-            alert(errorMessage);
-        }
-    };
-
-    // Add this function to the component's exports
-    const getStatusDisplay = (status) => {
-        switch (status) {
-            case 'approved':
-                return { text: 'Approved', color: '#10B981', bg: '#E6F6EC' };
-            case 'rejected':
-                return { text: 'Rejected', color: '#EF4444', bg: '#FEE2E2' };
-            case 'pending':
-            default:
-                return { text: 'Pending Approval', color: '#D97706', bg: '#FEF3C7' };
+            alert(err.response?.data?.message || 'Failed to reject student');
         }
     };
 
@@ -233,163 +206,113 @@ export default function AdminDashboard() {
         navigate('/');
     };
 
+    // --- RENDER ---
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: SOFT_BG }}>
-            {/* Sidebar */}
+            {/* --- VERTICAL SIDEBAR --- */}
             <aside style={{
-                width: 240,
+                width: 250,
                 background: WHITE,
-                boxShadow: '2px 0 12px rgba(0,0,0,0.08)',
+                boxShadow: '4px 0 10px rgba(0,0,0,0.05)',
                 display: 'flex',
                 flexDirection: 'column',
-                padding: '24px 16px',
+                padding: '30px 20px',
+                zIndex: 10,
             }}>
-                <div style={{ 
-                    padding: '16px 30px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
-                        <h2 style={{ color: PRIMARY_COLOR, margin: 0, fontSize: 24 }}>
-                            Admin Dashboard
-                        </h2>
-                        
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                                onClick={() => setActiveTab('courses')}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '8px 16px',
-                                    borderRadius: 4,
-                                    cursor: 'pointer',
-                                    fontWeight: activeTab === 'courses' ? 'bold' : 'normal',
-                                    color: activeTab === 'courses' ? PRIMARY_COLOR : MUTE_GRAY,
-                                    borderBottom: activeTab === 'courses' ? `2px solid ${PRIMARY_COLOR}` : 'none',
-                                }}
-                            >
-                                Courses
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('students')}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '8px 16px',
-                                    borderRadius: 4,
-                                    cursor: 'pointer',
-                                    fontWeight: activeTab === 'students' ? 'bold' : 'normal',
-                                    color: activeTab === 'students' ? PRIMARY_COLOR : MUTE_GRAY,
-                                    borderBottom: activeTab === 'students' ? `2px solid ${PRIMARY_COLOR}` : 'none',
-                                    position: 'relative',
-                                }}
-                            >
-                                Students
-                                {pendingCount > 0 && (
-                                    <span style={{
-                                        position: 'absolute',
-                                        top: -5,
-                                        right: -5,
-                                        backgroundColor: DANGER_COLOR,
-                                        color: 'white',
-                                        borderRadius: '50%',
-                                        width: 18,
-                                        height: 18,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 10,
-                                        fontWeight: 'bold',
-                                    }}>
-                                        {pendingCount > 9 ? '9+' : pendingCount}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
+                <div style={{ marginBottom: 40 }}>
+                    <h2 style={{ color: PRIMARY_COLOR, margin: 0, fontSize: 22 }}>
+                        Admin Console
+                    </h2>
+                    <div style={{ fontSize: 13, color: MUTE_GRAY, marginTop: 4 }}>
+                        {auth?.user?.username || auth?.user?.name || 'Administrator'}
                     </div>
+                </div>
 
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        <div style={{ textAlign: 'right', marginRight: 8 }}>
-                            <div style={{ fontSize: 13, color: '#374151' }}>Signed in as</div>
-                            <div style={{ fontWeight: 700, color: PRIMARY_COLOR }}>
-                                {auth?.user?.username || auth?.user?.name || 'Admin'}
-                            </div>
-                        </div>
-                        <button style={buttonLogoutStyle} onClick={handleLogout}>
-                            Logout
-                        </button>
-                    </div>
+                {/* Navigation Links */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexGrow: 1 }}>
+                    <button onClick={() => setActiveTab('courses')} style={getSidebarItemStyle(activeTab === 'courses')}>
+                        <span>📚 Course Management</span>
+                    </button>
+                    <button onClick={() => setActiveTab('students')} style={getSidebarItemStyle(activeTab === 'students')}>
+                        <span>👥 Student Approvals</span>
+                        {pendingCount > 0 && (
+                            <span style={{
+                                backgroundColor: DANGER_COLOR,
+                                color: 'white',
+                                borderRadius: '50%',
+                                width: 22, height: 22,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 11, fontWeight: 'bold',
+                            }}>
+                                {pendingCount > 9 ? '9+' : pendingCount}
+                            </span>
+                        )}
+                    </button>
+                    <button onClick={() => setActiveTab('messages')} style={getSidebarItemStyle(activeTab === 'messages')}>
+                        <span>💬 Messages</span>
+                    </button>
+                </div>
+
+                {/* Logout Button */}
+                <div style={{ marginTop: 'auto', paddingTop: 20, borderTop: `1px solid ${SOFT_BORDER_COLOR}` }}>
+                    <button style={{ ...buttonBaseStyle, background: DANGER_COLOR, color: WHITE, width: '100%' }} onClick={handleLogout}>
+                        Log Out
+                    </button>
                 </div>
             </aside>
 
-            {/* Right Content */}
-            <main style={{ flex: 1, padding: 32 }}>
+            {/* --- MAIN CONTENT AREA --- */}
+            <main style={{ flex: 1, padding: 32, maxWidth: '100%', overflowX: 'hidden' }}>
                 {activeTab === 'courses' && (
                     <>
-                        <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                            <div style={{
-                                flex: '1 1 120px',
-                                background: WHITE,
-                                borderRadius: 8,
-                                padding: 16,
-                                textAlign: 'center',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                                color: 'black'
-                            }}>
-                                <div style={{ fontSize: 12, color: MUTE_GRAY }}>Total</div>
-                                <div style={{ fontSize: 18, fontWeight: 700 }}>{stats.total}</div>
+                        <h1 style={{ color: PRIMARY_COLOR, borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, paddingBottom: 10, marginBottom: 24 }}>
+                            Course Management
+                        </h1>
+
+                        {/* Stats Cards */}
+                        <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 30 }}>
+                            <div style={{ background: WHITE, borderRadius: 10, padding: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.06)', borderBottom: `4px solid ${PRIMARY_COLOR}` }}>
+                                <div style={{ fontSize: 13, color: MUTE_GRAY }}>Total Courses</div>
+                                <div style={{ fontSize: 28, fontWeight: 700, color: PRIMARY_COLOR, marginTop: 4 }}>{stats.total}</div>
                             </div>
-                            <div style={{
-                                flex: '1 1 120px',
-                                background: WHITE,
-                                borderRadius: 8,
-                                padding: 16,
-                                textAlign: 'center',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                                color: 'black'
-                            }}>
-                                <div style={{ fontSize: 12, color: MUTE_GRAY }}>Published</div>
-                                <div style={{ fontSize: 18, fontWeight: 700, color: SUCCESS_COLOR }}>{stats.published}</div>
+                            <div style={{ background: WHITE, borderRadius: 10, padding: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.06)', borderBottom: `4px solid ${SUCCESS_COLOR}` }}>
+                                <div style={{ fontSize: 13, color: MUTE_GRAY }}>Published</div>
+                                <div style={{ fontSize: 28, fontWeight: 700, color: SUCCESS_COLOR, marginTop: 4 }}>{stats.published}</div>
                             </div>
-                            <div style={{
-                                flex: '1 1 120px',
-                                background: WHITE,
-                                borderRadius: 8,
-                                padding: 16,
-                                textAlign: 'center',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                                color: 'black'
-                            }}>
-                                <div style={{ fontSize: 12, color: MUTE_GRAY }}>Unpublished</div>
-                                <div style={{ fontSize: 18, fontWeight: 700, color: '#F97316' }}>{stats.unpublished}</div>
+                            <div style={{ background: WHITE, borderRadius: 10, padding: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.06)', borderBottom: `4px solid #F97316` }}>
+                                <div style={{ fontSize: 13, color: MUTE_GRAY }}>Unpublished</div>
+                                <div style={{ fontSize: 28, fontWeight: 700, color: '#F97316', marginTop: 4 }}>{stats.unpublished}</div>
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-                            <Link to="/admin/create-course">
-                                <button style={buttonPrimaryStyle}>+ Create New Course</button>
+                        {/* Controls: Search, Filter, Create */}
+                        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center', background: WHITE, padding: 16, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <Link to="/admin/create-course" style={{ textDecoration: 'none' }}>
+                                <button style={{ ...buttonBaseStyle, background: ACCENT_COLOR, color: WHITE }}>+ Create New Course</button>
                             </Link>
                             <input
-                                placeholder="Search courses..."
+                                placeholder="Search courses by title or description..."
                                 value={query}
                                 onChange={e => setQuery(e.target.value)}
                                 style={{ padding: '10px 14px', borderRadius: 6, border: `1px solid ${SOFT_BORDER_COLOR}`, flex: 1, minWidth: 200 }}
                             />
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-                                <input type="checkbox" checked={showPublishedOnly} onChange={() => setShowPublishedOnly(v => !v)} />
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: MUTE_GRAY }}>
+                                <input type="checkbox" checked={showPublishedOnly} onChange={() => setShowPublishedOnly(v => !v)} style={{ transform: 'scale(1.1)' }} />
                                 Published only
                             </label>
                         </div>
 
+                        {/* Course List Grid */}
                         {loading ? (
-                            <div>Loading courses...</div>
+                            <div style={{ padding: 40, textAlign: 'center', color: MUTE_GRAY }}>Loading courses...</div>
                         ) : error ? (
-                            <div style={{ color: DANGER_COLOR }}>{error}</div>
+                            <div style={{ color: DANGER_COLOR, padding: 20, textAlign: 'center', background: '#FEE2E2', borderRadius: 8 }}>Error: {error}</div>
                         ) : (
-                            <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+                            <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
                                 {filteredCourses.length === 0 ? (
-                                    <div>No courses found</div>
+                                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: MUTE_GRAY, padding: 40, background: WHITE, borderRadius: 8 }}>
+                                        No courses found matching your criteria.
+                                    </div>
                                 ) : filteredCourses.map(course => (
                                     <CourseCard
                                         key={course._id}
@@ -405,27 +328,36 @@ export default function AdminDashboard() {
 
                 {activeTab === 'students' && (
                     <div>
-                        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <h3 style={{ color: PRIMARY_COLOR }}>Students Management</h3>
-                            <input
-                                placeholder="Search students..."
+                        <h1 style={{ color: PRIMARY_COLOR, borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, paddingBottom: 10, marginBottom: 24 }}>
+                            Student Management
+                        </h1>
+                        
+                        {/* Student Controls */}
+                        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center', background: WHITE, padding: 16, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                             <input
+                                placeholder="Search students by name, email, or username..."
                                 value={studentSearchQuery}
                                 onChange={e => setStudentSearchQuery(e.target.value)}
-                                style={{ padding: '10px 14px', borderRadius: 6, border: `1px solid ${SOFT_BORDER_COLOR}`, minWidth: 250 }}
+                                style={{ padding: '10px 14px', borderRadius: 6, border: `1px solid ${SOFT_BORDER_COLOR}`, flex: 1, minWidth: 250 }}
                             />
+                            {!approvalsLoading && pendingCount > 0 && (
+                                <div style={{ color: DANGER_COLOR, fontWeight: 600 }}>
+                                    {pendingCount} {pendingCount === 1 ? 'student' : 'students'} pending approval.
+                                </div>
+                            )}
+                            {(studentsLoading || approvalsLoading) && <div style={{ color: MUTE_GRAY }}>Loading data...</div>}
                         </div>
-
-                        {/* Debug Info */}
                         
 
+                        {/* Student Table */}
                         <div style={{ 
                             background: WHITE, 
                             borderRadius: 12, 
                             boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
                             overflow: 'hidden'
                         }}>
-                            {studentsLoading ? (
-                                <div style={{ padding: 60, textAlign: 'center', color: MUTE_GRAY }}>Loading students...</div>
+                            {studentsLoading && students.length === 0 ? (
+                                <div style={{ padding: 60, textAlign: 'center', color: MUTE_GRAY }}>Loading students list...</div>
                             ) : filteredStudents.length === 0 ? (
                                 <div style={{ 
                                     textAlign: 'center', 
@@ -436,136 +368,97 @@ export default function AdminDashboard() {
                                     <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No Students Found</div>
                                     <div style={{ fontSize: 14 }}>
                                         {studentSearchQuery 
-                                            ? 'No students match your search criteria. Try a different search term.'
-                                            : `Showing 0 of ${students.length} students`}
+                                            ? 'No students match your search criteria.'
+                                            : `There are no student accounts registered yet.`}
                                     </div>
                                 </div>
                             ) : (
-                                <div style={{ overflow: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse' }}>
                                         <thead>
-                                            <tr style={{ background: SOFT_BG, borderBottom: `2px solid ${SOFT_BORDER_COLOR}` }}>
-                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    Student
-                                                </th>
-                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    Email
-                                                </th>
-                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    Username
-                                                </th>
-                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    Joined Date
-                                                </th>
-                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    Status
-                                                </th>
-                                                <th style={{ padding: '16px 20px', textAlign: 'center', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    Actions
-                                                </th>
+                                            <tr style={{ background: SOFT_BG }}>
+                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', borderBottom: `2px solid ${SOFT_BORDER_COLOR}` }}>Student</th>
+                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', borderBottom: `2px solid ${SOFT_BORDER_COLOR}` }}>Email</th>
+                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', borderBottom: `2px solid ${SOFT_BORDER_COLOR}` }}>Username</th>
+                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', borderBottom: `2px solid ${SOFT_BORDER_COLOR}` }}>Joined</th>
+                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', borderBottom: `2px solid ${SOFT_BORDER_COLOR}` }}>Status</th>
+                                                <th style={{ padding: '16px 20px', textAlign: 'center', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', borderBottom: `2px solid ${SOFT_BORDER_COLOR}` }}>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredStudents.map((student) => (
-                                                <tr key={student._id} style={{ borderTop: `1px solid ${SOFT_BORDER_COLOR}` }}>
-                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.name}</td>
-                                                    <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>{student.email}</td>
-                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.username || '-'}</td>
-                                                    <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>
-                                                        {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : 'N/A'}
-                                                    </td>
-                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>
-                                                        {student.status === 'approved' ? (
-                                                            <span style={{
-                                                                display: 'inline-block',
-                                                                padding: '6px 12px',
-                                                                borderRadius: 12,
-                                                                fontSize: 12,
-                                                                fontWeight: 500,
-                                                                backgroundColor: '#E6F6EC',
-                                                                color: '#10B981',
-                                                                minWidth: '100px',
-                                                                textAlign: 'center'
-                                                            }}>
-                                                                Approved
+                                            {filteredStudents.map((student, index) => {
+                                                const status = getStatusDisplay(student.status);
+                                                const isDeleting = deletingStudentId === student._id;
+
+                                                return (
+                                                    <tr key={student._id} style={{ borderBottom: `1px solid ${SOFT_BORDER_COLOR}`, background: index % 2 === 0 ? WHITE : SOFT_BG }}>
+                                                        <td style={{ padding: '12px 20px', fontSize: 14, fontWeight: 600 }}>{student.name}</td>
+                                                        <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>{student.email}</td>
+                                                        <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.username || '-'}</td>
+                                                        <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>
+                                                            {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : 'N/A'}
+                                                        </td>
+                                                        <td style={{ padding: '12px 20px', fontSize: 14 }}>
+                                                            <span style={statusBadgeStyle(status.color, status.bg)}>
+                                                                {status.text}
                                                             </span>
-                                                        ) : (
-                                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                                <button
-                                                                    onClick={() => handleApproveStudent(student._id)}
-                                                                    style={{
-                                                                        padding: '6px 12px',
-                                                                        borderRadius: 6,
-                                                                        fontSize: 12,
-                                                                        fontWeight: 500,
-                                                                        backgroundColor: '#E6F6EC',
-                                                                        color: '#10B981',
-                                                                        border: '1px solid #10B981',
-                                                                        cursor: 'pointer',
-                                                                        minWidth: '80px',
-                                                                        transition: 'all 0.2s',
-                                                                    }}
-                                                                    disabled={deletingStudentId === student._id}
-                                                                >
-                                                                    Approve
-                                                                </button>
-                                                                {student.status === 'pending' && (
-                                                                    <button
-                                                                        onClick={() => handleRejectStudent(student._id)}
-                                                                        style={{
-                                                                            padding: '6px 12px',
-                                                                            borderRadius: 6,
-                                                                            fontSize: 12,
-                                                                            fontWeight: 500,
-                                                                            backgroundColor: '#FEE2E2',
-                                                                            color: '#EF4444',
-                                                                            border: '1px solid #EF4444',
-                                                                            cursor: 'pointer',
-                                                                            minWidth: '80px',
-                                                                            transition: 'all 0.2s',
-                                                                        }}
-                                                                        disabled={deletingStudentId === student._id}
-                                                                    >
-                                                                        Reject
-                                                                    </button>
-                                                                )}
-                                                                {student.status === 'rejected' && (
+                                                        </td>
+                                                        <td style={{ padding: '12px 20px', textAlign: 'center' }}>
+                                                            {student.status === 'pending' && (
+                                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                                     <button
                                                                         onClick={() => handleApproveStudent(student._id)}
                                                                         style={{
+                                                                            ...buttonBaseStyle,
                                                                             padding: '6px 12px',
-                                                                            borderRadius: 6,
                                                                             fontSize: 12,
-                                                                            fontWeight: 500,
-                                                                            backgroundColor: '#FEF3C7',
-                                                                            color: '#D97706',
-                                                                            border: '1px solid #D97706',
-                                                                            cursor: 'pointer',
+                                                                            background: SUCCESS_COLOR,
+                                                                            color: WHITE,
                                                                             minWidth: '80px',
-                                                                            transition: 'all 0.2s',
+                                                                            margin: 0,
                                                                         }}
-                                                                        disabled={deletingStudentId === student._id}
+                                                                        disabled={isDeleting}
                                                                     >
                                                                         Approve
                                                                     </button>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td style={{ padding: '12px 20px', textAlign: 'center' }}>
-                                                        <button
-                                                            onClick={() => handleDeleteStudent(student._id, student.name)}
-                                                            style={{
-                                                                ...buttonDangerSmallStyle,
-                                                                opacity: deletingStudentId === student._id ? 0.7 : 1,
-                                                            }}
-                                                            disabled={deletingStudentId === student._id}
-                                                        >
-                                                            {deletingStudentId === student._id ? 'Deleting...' : 'Delete'}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                                    <button
+                                                                        onClick={() => handleRejectStudent(student._id)}
+                                                                        style={{
+                                                                            ...buttonBaseStyle,
+                                                                            padding: '6px 12px',
+                                                                            fontSize: 12,
+                                                                            background: DANGER_COLOR,
+                                                                            color: WHITE,
+                                                                            minWidth: '80px',
+                                                                            margin: 0,
+                                                                        }}
+                                                                        disabled={isDeleting}
+                                                                    >
+                                                                        Reject
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                            {(student.status === 'approved' || student.status === 'rejected') && (
+                                                                <button
+                                                                    onClick={() => handleDeleteStudent(student._id, student.name)}
+                                                                    style={{
+                                                                        ...buttonBaseStyle,
+                                                                        padding: '6px 12px',
+                                                                        fontSize: 12,
+                                                                        background: '#FFD1D1',
+                                                                        color: DANGER_COLOR,
+                                                                        border: `1px solid ${DANGER_COLOR}`,
+                                                                        margin: 0,
+                                                                    }}
+                                                                    disabled={isDeleting}
+                                                                >
+                                                                    {isDeleting ? 'Deleting...' : 'Delete'}
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -575,8 +468,8 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'messages' && (
-                    <div>
-                        <h3 style={{ color: PRIMARY_COLOR, marginBottom: 16 }}>Admin Messages</h3>
+                    <div style={{ maxWidth: 800, margin: '0 auto' }}>
+                        <h2 style={{ color: PRIMARY_COLOR, borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, paddingBottom: 10, marginBottom: 24 }}>Admin Messages</h2>
                         <AdminMessageBoard />
                     </div>
                 )}
