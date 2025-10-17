@@ -13,6 +13,7 @@ import QuizPage from './pages/Student/QuizPage';
 import ManageQuiz from './pages/admin/ManageQuiz';
 import AdminMessageBoard from './pages/admin/AdminMessageBoard';
 import StudentMessageBoard from './pages/Student/StudentMessageBoard';
+import AdminCourseProgress from './pages/admin/ViewProgress';
 
 export default function App() {
   return (
@@ -43,8 +44,9 @@ export default function App() {
           element={<ManageQuiz />}
         />
         <Route path="/admin/messages" element={<AdminMessageBoard />} />
-      </Route>
-
+      
+      <Route path="/admin/course-progress/:courseId" element={<AdminCourseProgress />} />
+</Route>
       <Route path="*" element={<div>Not Found</div>} />
     </Routes>
   );

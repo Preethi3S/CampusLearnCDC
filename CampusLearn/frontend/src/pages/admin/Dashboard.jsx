@@ -5,31 +5,28 @@ import CourseCard from '../../components/CourseCard';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../../features/auth/authSlice';
 import userApi from '../../api/userApi';
+import AdminMessageBoard from './AdminMessageBoard';
 
 const PRIMARY_COLOR = '#473E7A';
-const SOFT_BORDER_COLOR = '#EBEBEB'; 
 const SOFT_BG = '#F8F8F8';
 const WHITE = '#FFFFFF';
-const DANGER_COLOR = '#E53935'; 
+const DANGER_COLOR = '#E53935';
 const MUTE_GRAY = '#6B7280';
 const SUCCESS_COLOR = '#10B981';
+const SOFT_BORDER_COLOR = '#EBEBEB';
 
 const buttonPrimaryStyle = {
     background: PRIMARY_COLOR,
     color: WHITE,
     padding: '12px 20px',
-    borderRadius: 4,
+    borderRadius: 6,
     border: 'none',
     fontWeight: 'bold',
     cursor: 'pointer',
-    transition: 'background-color 0.2s',
+    transition: 'all 0.2s',
 };
 
-const buttonLogoutStyle = {
-    ...buttonPrimaryStyle,
-    background: DANGER_COLOR,
-};
-
+const buttonLogoutStyle = { ...buttonPrimaryStyle, background: DANGER_COLOR };
 const buttonDangerSmallStyle = {
     background: DANGER_COLOR,
     color: WHITE,
@@ -44,10 +41,10 @@ const buttonDangerSmallStyle = {
 
 export default function AdminDashboard() {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { items, loading, error } = useSelector(s => s.courses);
     const auth = useSelector(s => s.auth);
-    const navigate = useNavigate();
-    
+
     const [activeTab, setActiveTab] = useState('courses');
     const [query, setQuery] = useState('');
     const [showPublishedOnly, setShowPublishedOnly] = useState(false);
@@ -60,9 +57,10 @@ export default function AdminDashboard() {
     const [pendingCount, setPendingCount] = useState(0);
     const [approvalsLoading, setApprovalsLoading] = useState(false);
 
+    // Load courses and students
     useEffect(() => {
         dispatch(fetchCourses());
-        
+
         const loadStudents = async () => {
             if (!auth?.user || auth.user.role !== 'admin') {
                 console.log('Not loading students: User not authenticated or not admin');
@@ -80,7 +78,6 @@ export default function AdminDashboard() {
                 setStudents(studentsList);
                 setStudentsError(null);
             } catch (err) {
-                console.error('Error loading students:', err);
                 setStudentsError(err.response?.data?.message || err.message || 'Failed to load students');
                 setStudents([]);
             } finally {
@@ -111,50 +108,42 @@ export default function AdminDashboard() {
         loadPendingApprovals();
     }, [dispatch, auth?.user, auth?.token]);
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase();
+    const filteredCourses = useMemo(() => {
         let list = Array.isArray(items) ? [...items] : [];
         if (showPublishedOnly) list = list.filter(c => c.isPublished);
-        if (!q) return list;
-        return list.filter(c => 
-            (c.title || '').toLowerCase().includes(q) || 
-            (c.description || '').toLowerCase().includes(q)
+        if (query) list = list.filter(c =>
+            (c.title || '').toLowerCase().includes(query.toLowerCase()) ||
+            (c.description || '').toLowerCase().includes(query.toLowerCase())
         );
+        return list;
     }, [items, query, showPublishedOnly]);
 
     const filteredStudents = useMemo(() => {
-        const q = studentSearchQuery.trim().toLowerCase();
-        if (!q) return students;
-        return students.filter(s => 
-            (s.name || '').toLowerCase().includes(q) ||
-            (s.username || '').toLowerCase().includes(q) ||
-            (s.email || '').toLowerCase().includes(q)
+        if (!studentSearchQuery) return students;
+        return students.filter(s =>
+            (s.name || '').toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+            (s.username || '').toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+            (s.email || '').toLowerCase().includes(studentSearchQuery.toLowerCase())
         );
     }, [students, studentSearchQuery]);
 
-    const stats = useMemo(() => {
-        const list = Array.isArray(items) ? items : [];
-        return {
-            total: list.length,
-            published: list.filter(c => c.isPublished).length,
-            unpublished: list.filter(c => !c.isPublished).length
-        };
-    }, [items]);
+    const stats = useMemo(() => ({
+        total: items.length,
+        published: items.filter(c => c.isPublished).length,
+        unpublished: items.filter(c => !c.isPublished).length,
+    }), [items]);
 
-    const handleDelete = (id) => {
-        if (!window.confirm('Delete this course?')) return;
-        dispatch(deleteCourse(id));
+    const handleDeleteCourse = (id) => {
+        if (window.confirm('Delete this course?')) dispatch(deleteCourse(id));
     };
 
     const handleDeleteStudent = async (studentId, studentName) => {
-        if (!window.confirm(`Are you sure you want to remove ${studentName}? This action cannot be undone.`)) return;
-        
+        if (!window.confirm(`Remove ${studentName}? This cannot be undone.`)) return;
         setDeletingStudentId(studentId);
         try {
             await userApi.deleteUser(auth.token, studentId);
             setStudents(prev => prev.filter(s => s._id !== studentId));
         } catch (err) {
-            console.error('Error deleting student:', err);
             alert(err.response?.data?.message || 'Failed to delete student');
         } finally {
             setDeletingStudentId(null);
@@ -245,14 +234,15 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', background: SOFT_BG }}>
-            {/* Navbar */}
-            <nav style={{ 
-                background: WHITE, 
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                position: 'sticky',
-                top: 0,
-                zIndex: 100
+        <div style={{ display: 'flex', minHeight: '100vh', background: SOFT_BG }}>
+            {/* Sidebar */}
+            <aside style={{
+                width: 240,
+                background: WHITE,
+                boxShadow: '2px 0 12px rgba(0,0,0,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '24px 16px',
             }}>
                 <div style={{ 
                     padding: '16px 30px',
@@ -331,180 +321,98 @@ export default function AdminDashboard() {
                         </button>
                     </div>
                 </div>
-            </nav>
+            </aside>
 
-            <div style={{ padding: 30 }}>
+            {/* Right Content */}
+            <main style={{ flex: 1, padding: 32 }}>
                 {activeTab === 'courses' && (
                     <>
-                        <div style={{ 
-                            marginBottom: 25, 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center', 
-                            gap: 20,
-                            flexWrap: 'wrap'
-                        }}>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                                    <div style={{ fontSize: 12, color: MUTE_GRAY }}>Total</div>
-                                    <div style={{ fontSize: 18, fontWeight: 700, color: PRIMARY_COLOR }}>{stats.total}</div>
-                                </div>
-                                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                                    <div style={{ fontSize: 12, color: MUTE_GRAY }}>Published</div>
-                                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0EA5A4' }}>{stats.published}</div>
-                                </div>
-                                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                                    <div style={{ fontSize: 12, color: MUTE_GRAY }}>Unpublished</div>
-                                    <div style={{ fontSize: 18, fontWeight: 700, color: '#F97316' }}>{stats.unpublished}</div>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                <Link to="/admin/create-course" style={{ textDecoration: 'none' }}>
-                                    <button style={buttonPrimaryStyle}>+ Create New Course</button>
-                                </Link>
-                                <input 
-                                    placeholder="Search courses" 
-                                    value={query} 
-                                    onChange={(e) => setQuery(e.target.value)} 
-                                    style={{ 
-                                        padding: '8px 12px', 
-                                        borderRadius: 6, 
-                                        border: `1px solid ${SOFT_BORDER_COLOR}`,
-                                        minWidth: '250px'
-                                    }} 
-                                />
-                                <label style={{ 
-                                    fontSize: 13, 
-                                    color: '#475569', 
-                                    display: 'flex', 
-                                    gap: 8, 
-                                    alignItems: 'center', 
-                                    cursor: 'pointer' 
-                                }}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={showPublishedOnly} 
-                                        onChange={() => setShowPublishedOnly(v => !v)} 
-                                    /> 
-                                    Published only
-                                </label>
-                                <button 
-                                    onClick={() => dispatch(fetchCourses())} 
-                                    style={{ 
-                                        padding: '8px 16px', 
-                                        borderRadius: 6, 
-                                        border: `1px solid ${SOFT_BORDER_COLOR}`, 
-                                        background: WHITE, 
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}
-                                >
-                                    <span>🔄</span> Refresh
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center',
-                                marginBottom: 16
+                        <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+                            <div style={{
+                                flex: '1 1 120px',
+                                background: WHITE,
+                                borderRadius: 8,
+                                padding: 16,
+                                textAlign: 'center',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                                color: 'black'
                             }}>
-                                <h3 style={{ margin: 0, color: PRIMARY_COLOR }}>Courses</h3>
-                                <div style={{ fontSize: 14, color: MUTE_GRAY }}>
-                                    Showing {filtered.length} of {items?.length || 0} courses
-                                </div>
+                                <div style={{ fontSize: 12, color: MUTE_GRAY }}>Total</div>
+                                <div style={{ fontSize: 18, fontWeight: 700 }}>{stats.total}</div>
                             </div>
-
-                            {loading ? (
-                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-                                    <div>Loading courses...</div>
-                                </div>
-                            ) : error ? (
-                                <div style={{ padding: '16px', backgroundColor: '#FEE2E2', color: DANGER_COLOR, borderRadius: '8px', marginBottom: '20px' }}>
-                                    Error: {error}
-                                </div>
-                            ) : (
-                                <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-                                    {filtered.length === 0 ? (
-                                        <div style={{ 
-                                            gridColumn: '1 / -1', 
-                                            textAlign: 'center', 
-                                            padding: '40px 20px',
-                                            backgroundColor: WHITE,
-                                            borderRadius: '8px',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                                        }}>
-                                            <div style={{ fontSize: '18px', fontWeight: '600', color: MUTE_GRAY, marginBottom: '8px' }}>
-                                                No courses found
-                                            </div>
-                                            <div style={{ color: '#9CA3AF', marginBottom: '16px' }}>
-                                                {query || showPublishedOnly ? 'Try adjusting your search or filter criteria' : 'Create your first course to get started'}
-                                            </div>
-                                            <Link to="/admin/create-course">
-                                                <button style={{ ...buttonPrimaryStyle, padding: '8px 16px', fontSize: '14px' }}>
-                                                    + Create New Course
-                                                </button>
-                                            </Link>
-                                        </div>
-                                    ) : (
-                                        filtered.map(course => (
-                                            <CourseCard 
-                                                key={course._id}
-                                                course={course}
-                                                onDelete={handleDelete}
-                                                onUpdated={() => dispatch(fetchCourses())}
-                                            />
-                                        ))
-                                    )}
-                                </div>
-                            )}
+                            <div style={{
+                                flex: '1 1 120px',
+                                background: WHITE,
+                                borderRadius: 8,
+                                padding: 16,
+                                textAlign: 'center',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                                color: 'black'
+                            }}>
+                                <div style={{ fontSize: 12, color: MUTE_GRAY }}>Published</div>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: SUCCESS_COLOR }}>{stats.published}</div>
+                            </div>
+                            <div style={{
+                                flex: '1 1 120px',
+                                background: WHITE,
+                                borderRadius: 8,
+                                padding: 16,
+                                textAlign: 'center',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                                color: 'black'
+                            }}>
+                                <div style={{ fontSize: 12, color: MUTE_GRAY }}>Unpublished</div>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: '#F97316' }}>{stats.unpublished}</div>
+                            </div>
                         </div>
+
+                        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+                            <Link to="/admin/create-course">
+                                <button style={buttonPrimaryStyle}>+ Create New Course</button>
+                            </Link>
+                            <input
+                                placeholder="Search courses..."
+                                value={query}
+                                onChange={e => setQuery(e.target.value)}
+                                style={{ padding: '10px 14px', borderRadius: 6, border: `1px solid ${SOFT_BORDER_COLOR}`, flex: 1, minWidth: 200 }}
+                            />
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                                <input type="checkbox" checked={showPublishedOnly} onChange={() => setShowPublishedOnly(v => !v)} />
+                                Published only
+                            </label>
+                        </div>
+
+                        {loading ? (
+                            <div>Loading courses...</div>
+                        ) : error ? (
+                            <div style={{ color: DANGER_COLOR }}>{error}</div>
+                        ) : (
+                            <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+                                {filteredCourses.length === 0 ? (
+                                    <div>No courses found</div>
+                                ) : filteredCourses.map(course => (
+                                    <CourseCard
+                                        key={course._id}
+                                        course={course}
+                                        onDelete={handleDeleteCourse}
+                                        onUpdated={() => dispatch(fetchCourses())}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </>
                 )}
 
                 {activeTab === 'students' && (
                     <div>
-                        <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            marginBottom: 20
-                        }}>
-                            <div>
-                                <h3 style={{ margin: 0, color: PRIMARY_COLOR, fontSize: 24 }}>Students Management</h3>
-                                <p style={{ margin: '4px 0 0 0', color: MUTE_GRAY, fontSize: 14 }}>
-                                    Manage all registered students
-                                </p>
-                            </div>
-                            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                <input 
-                                    placeholder="Search students by name or email..." 
-                                    value={studentSearchQuery} 
-                                    onChange={(e) => setStudentSearchQuery(e.target.value)} 
-                                    style={{ 
-                                        padding: '10px 16px', 
-                                        borderRadius: 6, 
-                                        border: `1px solid ${SOFT_BORDER_COLOR}`,
-                                        minWidth: '300px',
-                                        fontSize: 14
-                                    }} 
-                                />
-                                <div style={{ 
-                                    padding: '10px 16px',
-                                    background: PRIMARY_COLOR,
-                                    color: WHITE,
-                                    borderRadius: 6,
-                                    fontWeight: 600,
-                                    fontSize: 14
-                                }}>
-                                    Total: {filteredStudents.length}
-                                </div>
-                            </div>
+                        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <h3 style={{ color: PRIMARY_COLOR }}>Students Management</h3>
+                            <input
+                                placeholder="Search students..."
+                                value={studentSearchQuery}
+                                onChange={e => setStudentSearchQuery(e.target.value)}
+                                style={{ padding: '10px 14px', borderRadius: 6, border: `1px solid ${SOFT_BORDER_COLOR}`, minWidth: 250 }}
+                            />
                         </div>
 
                         {/* Debug Info */}
@@ -517,31 +425,7 @@ export default function AdminDashboard() {
                             overflow: 'hidden'
                         }}>
                             {studentsLoading ? (
-                                <div style={{ textAlign: 'center', padding: '60px' }}>
-                                    <div style={{ fontSize: 16, color: MUTE_GRAY }}>Loading students...</div>
-                                </div>
-                            ) : studentsError ? (
-                                <div style={{ 
-                                    color: DANGER_COLOR, 
-                                    textAlign: 'center', 
-                                    padding: '60px',
-                                    background: '#FEE2E2',
-                                    borderRadius: 8,
-                                    margin: 20
-                                }}>
-                                    <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Error Loading Students</div>
-                                    <div>{studentsError}</div>
-                                </div>
-                            ) : !Array.isArray(students) || students.length === 0 ? (
-                                <div style={{ 
-                                    textAlign: 'center', 
-                                    padding: '60px',
-                                    color: MUTE_GRAY
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>👥</div>
-                                    <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No Students Yet</div>
-                                    <div style={{ fontSize: 14 }}>Students will appear here once they register</div>
-                                </div>
+                                <div style={{ padding: 60, textAlign: 'center', color: MUTE_GRAY }}>Loading students...</div>
                             ) : filteredStudents.length === 0 ? (
                                 <div style={{ 
                                     textAlign: 'center', 
@@ -689,7 +573,14 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                 )}
-            </div>
+
+                {activeTab === 'messages' && (
+                    <div>
+                        <h3 style={{ color: PRIMARY_COLOR, marginBottom: 16 }}>Admin Messages</h3>
+                        <AdminMessageBoard />
+                    </div>
+                )}
+            </main>
         </div>
     );
 }
