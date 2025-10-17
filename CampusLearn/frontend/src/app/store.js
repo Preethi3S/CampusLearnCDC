@@ -3,6 +3,7 @@ import authReducer from '../features/auth/authSlice';
 import coursesReducer from '../features/courses/courseSlice';
 import quizReducer from '../features/quizzes/quizSlice';
 import messagesReducer from '../features/messages/messageSlice';
+import studentProfileReducer from '../features/profile/studentProfileSlice';
 
 const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ const store = configureStore({
     courses: coursesReducer,
     quiz: quizReducer,
     messages : messagesReducer,
+    studentProfile: studentProfileReducer,
   }
 });
 

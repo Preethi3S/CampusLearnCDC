@@ -24,41 +24,26 @@ export default function App() {
       {/* Student-only routes */}
       <Route element={<ProtectedRoute allowedRoles={['student']} />}>
         <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/courses" element={<EnrolledCourses />} />
+        <Route path="/student/course/:id" element={<CourseView />} />
+        <Route
+          path="/student/course/:courseId/level/:levelId/module/:moduleId/quiz"
+          element={<QuizPage />}
+        />
+        <Route path="/student/messages" element={<StudentMessageBoard />} />
       </Route>
 
-      {/* Admin-only */}
+      {/* Admin-only routes */}
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/create-course" element={<CreateCourse />} />
+        <Route path="/admin/manage-course/:id" element={<ManageCourse />} />
+        <Route
+          path="/admin/course/:courseId/level/:levelId/module/:moduleId/quiz"
+          element={<ManageQuiz />}
+        />
+        <Route path="/admin/messages" element={<AdminMessageBoard />} />
       </Route>
-
-<Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-  <Route path="/admin/dashboard" element={<AdminDashboard />} />
-  <Route path="/admin/create-course" element={<CreateCourse />} />
-  <Route path="/admin/manage-course/:id" element={<ManageCourse />} />
-</Route>
-
-<Route element={<ProtectedRoute allowedRoles={['student']} />}>
-  <Route path="/student/courses" element={<EnrolledCourses />} />
-  <Route path="/student/course/:id" element={<CourseView />} />
-   <Route
-    path="/student/course/:courseId/level/:levelId/module/:moduleId/quiz"
-    element={<QuizPage />}
-  />
-  <Route
-  path="/admin/course/:courseId/level/:levelId/module/:moduleId/quiz"
-  element={<ManageQuiz />}
-/>
-
-</Route>
-
-<Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-  <Route path="/admin/messages" element={<AdminMessageBoard />} />
-</Route>
-
-<Route element={<ProtectedRoute allowedRoles={['student']} />}>
-  <Route path="/student/messages" element={<StudentMessageBoard />} />
-</Route>
-
 
       <Route path="*" element={<div>Not Found</div>} />
     </Routes>
