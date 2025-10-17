@@ -56,17 +56,27 @@ export default function AdminDashboard() {
     const [studentsError, setStudentsError] = useState(null);
     const [studentSearchQuery, setStudentSearchQuery] = useState('');
     const [deletingStudentId, setDeletingStudentId] = useState(null);
+    const [pendingApprovals, setPendingApprovals] = useState([]);
+    const [pendingCount, setPendingCount] = useState(0);
+    const [approvalsLoading, setApprovalsLoading] = useState(false);
 
     useEffect(() => {
         dispatch(fetchCourses());
         
         const loadStudents = async () => {
-            if (!auth?.user || auth.user.role !== 'admin') return;
+            if (!auth?.user || auth.user.role !== 'admin') {
+                console.log('Not loading students: User not authenticated or not admin');
+                return;
+            }
             
+            console.log('Loading students...');
             setStudentsLoading(true);
             try {
+                console.log('Calling userApi.getUsers...');
                 const response = await userApi.getUsers(auth.token, 'student');
+                console.log('API Response:', response);
                 const studentsList = Array.isArray(response) ? response : [];
+                console.log('Setting students list:', studentsList);
                 setStudents(studentsList);
                 setStudentsError(null);
             } catch (err) {
@@ -74,11 +84,31 @@ export default function AdminDashboard() {
                 setStudentsError(err.response?.data?.message || err.message || 'Failed to load students');
                 setStudents([]);
             } finally {
+                console.log('Finished loading students');
                 setStudentsLoading(false);
+            }
+        };
+
+        const loadPendingApprovals = async () => {
+            if (!auth?.user || auth.user.role !== 'admin') return;
+            
+            setApprovalsLoading(true);
+            try {
+                const response = await userApi.getPendingApprovals(auth.token);
+                const pendingList = Array.isArray(response) ? response : [];
+                setPendingApprovals(pendingList);
+                setPendingCount(pendingList.length);
+            } catch (err) {
+                console.error('Error loading pending approvals:', err);
+                setPendingApprovals([]);
+                setPendingCount(0);
+            } finally {
+                setApprovalsLoading(false);
             }
         };
         
         loadStudents();
+        loadPendingApprovals();
     }, [dispatch, auth?.user, auth?.token]);
 
     const filtered = useMemo(() => {
@@ -131,6 +161,84 @@ export default function AdminDashboard() {
         }
     };
 
+    const updateStudentStatus = async (studentId, status) => {
+        try {
+            if (status === 'approved') {
+                await userApi.approveUser(auth.token, studentId);
+            } else if (status === 'rejected') {
+                await userApi.rejectUser(auth.token, studentId, 'Rejected by admin');
+            } else {
+                throw new Error('Invalid status update');
+            }
+            
+            // Update local state
+            setStudents(prev => 
+                prev.map(s => 
+                    s._id === studentId ? { ...s, status } : s
+                )
+            );
+            
+            // Update pending approvals count
+            if (status === 'approved' || status === 'rejected') {
+                setPendingCount(prev => Math.max(0, prev - 1));
+            }
+            
+            return true;
+        } catch (err) {
+            console.error(`Error updating student status to ${status}:`, err);
+            const errorMessage = err.response?.data?.message || err.message || `Failed to ${status} student`;
+            alert(errorMessage);
+            return false;
+        }
+    };
+
+    const handleApproveStudent = async (studentId) => {
+        try {
+            await userApi.approveUser(auth.token, studentId);
+            // Refresh the students list to reflect the change
+            const response = await userApi.getUsers(auth.token, 'student');
+            setStudents(Array.isArray(response) ? response : []);
+            // Update pending count
+            setPendingCount(prev => Math.max(0, prev - 1));
+        } catch (err) {
+            console.error('Error approving student:', err);
+            const errorMessage = err.response?.data?.message || err.message || 'Failed to approve student';
+            alert(errorMessage);
+        }
+    };
+
+    const handleRejectStudent = async (studentId) => {
+        if (!window.confirm('Are you sure you want to reject this student? They will lose access to their account.')) {
+            return;
+        }
+        
+        try {
+            await userApi.rejectUser(auth.token, studentId, 'Rejected by admin');
+            // Refresh the students list to reflect the change
+            const response = await userApi.getUsers(auth.token, 'student');
+            setStudents(Array.isArray(response) ? response : []);
+            // Update pending count
+            setPendingCount(prev => Math.max(0, prev - 1));
+        } catch (err) {
+            console.error('Error rejecting student:', err);
+            const errorMessage = err.response?.data?.message || err.message || 'Failed to reject student';
+            alert(errorMessage);
+        }
+    };
+
+    // Add this function to the component's exports
+    const getStatusDisplay = (status) => {
+        switch (status) {
+            case 'approved':
+                return { text: 'Approved', color: '#10B981', bg: '#E6F6EC' };
+            case 'rejected':
+                return { text: 'Rejected', color: '#EF4444', bg: '#FEE2E2' };
+            case 'pending':
+            default:
+                return { text: 'Pending Approval', color: '#D97706', bg: '#FEF3C7' };
+        }
+    };
+
     const handleLogout = () => {
         dispatch(logout());
         navigate('/');
@@ -161,43 +269,52 @@ export default function AdminDashboard() {
                             <button
                                 onClick={() => setActiveTab('courses')}
                                 style={{
-                                    padding: '10px 20px',
-                                    background: activeTab === 'courses' ? PRIMARY_COLOR : 'transparent',
-                                    color: activeTab === 'courses' ? WHITE : PRIMARY_COLOR,
-                                    border: `2px solid ${PRIMARY_COLOR}`,
-                                    borderRadius: 6,
-                                    fontWeight: 600,
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: 4,
                                     cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    fontWeight: activeTab === 'courses' ? 'bold' : 'normal',
+                                    color: activeTab === 'courses' ? PRIMARY_COLOR : MUTE_GRAY,
+                                    borderBottom: activeTab === 'courses' ? `2px solid ${PRIMARY_COLOR}` : 'none',
                                 }}
                             >
-                                Manage Courses
+                                Courses
                             </button>
                             <button
                                 onClick={() => setActiveTab('students')}
                                 style={{
-                                    padding: '10px 20px',
-                                    background: activeTab === 'students' ? PRIMARY_COLOR : 'transparent',
-                                    color: activeTab === 'students' ? WHITE : PRIMARY_COLOR,
-                                    border: `2px solid ${PRIMARY_COLOR}`,
-                                    borderRadius: 6,
-                                    fontWeight: 600,
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: 4,
                                     cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    fontWeight: activeTab === 'students' ? 'bold' : 'normal',
+                                    color: activeTab === 'students' ? PRIMARY_COLOR : MUTE_GRAY,
+                                    borderBottom: activeTab === 'students' ? `2px solid ${PRIMARY_COLOR}` : 'none',
+                                    position: 'relative',
                                 }}
                             >
                                 Students
-                                <span style={{ 
-                                    marginLeft: 8, 
-                                    background: activeTab === 'students' ? WHITE : PRIMARY_COLOR,
-                                    color: activeTab === 'students' ? PRIMARY_COLOR : WHITE,
-                                    padding: '2px 8px',
-                                    borderRadius: 12,
-                                    fontSize: 12,
-                                    fontWeight: 700
-                                }}>
-                                    {students.length}
-                                </span>
+                                {pendingCount > 0 && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: -5,
+                                        right: -5,
+                                        backgroundColor: DANGER_COLOR,
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        width: 18,
+                                        height: 18,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: 10,
+                                        fontWeight: 'bold',
+                                    }}>
+                                        {pendingCount > 9 ? '9+' : pendingCount}
+                                    </span>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -390,6 +507,9 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
+                        {/* Debug Info */}
+                        
+
                         <div style={{ 
                             background: WHITE, 
                             borderRadius: 12, 
@@ -429,8 +549,12 @@ export default function AdminDashboard() {
                                     color: MUTE_GRAY
                                 }}>
                                     <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-                                    <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No Results Found</div>
-                                    <div style={{ fontSize: 14 }}>Try adjusting your search criteria</div>
+                                    <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No Students Found</div>
+                                    <div style={{ fontSize: 14 }}>
+                                        {studentSearchQuery 
+                                            ? 'No students match your search criteria. Try a different search term.'
+                                            : `Showing 0 of ${students.length} students`}
+                                    </div>
                                 </div>
                             ) : (
                                 <div style={{ overflow: 'auto' }}>
@@ -449,93 +573,111 @@ export default function AdminDashboard() {
                                                 <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                                     Joined Date
                                                 </th>
+                                                <th style={{ padding: '16px 20px', textAlign: 'left', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                    Status
+                                                </th>
                                                 <th style={{ padding: '16px 20px', textAlign: 'center', color: PRIMARY_COLOR, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                                     Actions
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredStudents.map((student, index) => (
-                                                <tr 
-                                                    key={student._id || index}
-                                                    style={{ 
-                                                        borderBottom: `1px solid ${SOFT_BORDER_COLOR}`,
-                                                        transition: 'background 0.2s',
-                                                        background: WHITE
-                                                    }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.background = SOFT_BG}
-                                                    onMouseLeave={(e) => e.currentTarget.style.background = WHITE}
-                                                >
-                                                    <td style={{ padding: '16px 20px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                            <div style={{ 
-                                                                width: 40, 
-                                                                height: 40, 
-                                                                borderRadius: '50%', 
-                                                                background: PRIMARY_COLOR,
-                                                                color: WHITE,
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                fontWeight: 700,
-                                                                fontSize: 16
+                                            {filteredStudents.map((student) => (
+                                                <tr key={student._id} style={{ borderTop: `1px solid ${SOFT_BORDER_COLOR}` }}>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.name}</td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>{student.email}</td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.username || '-'}</td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>
+                                                        {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : 'N/A'}
+                                                    </td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>
+                                                        {student.status === 'approved' ? (
+                                                            <span style={{
+                                                                display: 'inline-block',
+                                                                padding: '6px 12px',
+                                                                borderRadius: 12,
+                                                                fontSize: 12,
+                                                                fontWeight: 500,
+                                                                backgroundColor: '#E6F6EC',
+                                                                color: '#10B981',
+                                                                minWidth: '100px',
+                                                                textAlign: 'center'
                                                             }}>
-                                                                {(student.name || student.username || 'S')[0].toUpperCase()}
+                                                                Approved
+                                                            </span>
+                                                        ) : (
+                                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                                <button
+                                                                    onClick={() => handleApproveStudent(student._id)}
+                                                                    style={{
+                                                                        padding: '6px 12px',
+                                                                        borderRadius: 6,
+                                                                        fontSize: 12,
+                                                                        fontWeight: 500,
+                                                                        backgroundColor: '#E6F6EC',
+                                                                        color: '#10B981',
+                                                                        border: '1px solid #10B981',
+                                                                        cursor: 'pointer',
+                                                                        minWidth: '80px',
+                                                                        transition: 'all 0.2s',
+                                                                    }}
+                                                                    disabled={deletingStudentId === student._id}
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                                {student.status === 'pending' && (
+                                                                    <button
+                                                                        onClick={() => handleRejectStudent(student._id)}
+                                                                        style={{
+                                                                            padding: '6px 12px',
+                                                                            borderRadius: 6,
+                                                                            fontSize: 12,
+                                                                            fontWeight: 500,
+                                                                            backgroundColor: '#FEE2E2',
+                                                                            color: '#EF4444',
+                                                                            border: '1px solid #EF4444',
+                                                                            cursor: 'pointer',
+                                                                            minWidth: '80px',
+                                                                            transition: 'all 0.2s',
+                                                                        }}
+                                                                        disabled={deletingStudentId === student._id}
+                                                                    >
+                                                                        Reject
+                                                                    </button>
+                                                                )}
+                                                                {student.status === 'rejected' && (
+                                                                    <button
+                                                                        onClick={() => handleApproveStudent(student._id)}
+                                                                        style={{
+                                                                            padding: '6px 12px',
+                                                                            borderRadius: 6,
+                                                                            fontSize: 12,
+                                                                            fontWeight: 500,
+                                                                            backgroundColor: '#FEF3C7',
+                                                                            color: '#D97706',
+                                                                            border: '1px solid #D97706',
+                                                                            cursor: 'pointer',
+                                                                            minWidth: '80px',
+                                                                            transition: 'all 0.2s',
+                                                                        }}
+                                                                        disabled={deletingStudentId === student._id}
+                                                                    >
+                                                                        Approve
+                                                                    </button>
+                                                                )}
                                                             </div>
-                                                            <div>
-                                                                <div style={{ fontWeight: 600, color: '#1F2937', fontSize: 15 }}>
-                                                                    {student.name || 'N/A'}
-                                                                </div>
-                                                                <div style={{ fontSize: 12, color: MUTE_GRAY }}>
-                                                                    ID: {student._id.slice(-8)}
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                        )}
                                                     </td>
-                                                    <td style={{ padding: '16px 20px' }}>
-                                                        <div style={{ color: '#374151', fontSize: 14 }}>
-                                                            {student.email || 'No email'}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '16px 20px' }}>
-                                                        <div style={{ 
-                                                            color: PRIMARY_COLOR, 
-                                                            fontSize: 14,
-                                                            fontWeight: 500
-                                                        }}>
-                                                            @{student.username || 'N/A'}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '16px 20px' }}>
-                                                        <div style={{ color: '#374151', fontSize: 14 }}>
-                                                            {new Date(student.createdAt).toLocaleDateString('en-US', { 
-                                                                year: 'numeric', 
-                                                                month: 'short', 
-                                                                day: 'numeric' 
-                                                            })}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                                    <td style={{ padding: '12px 20px', textAlign: 'center' }}>
                                                         <button
-                                                            onClick={() => handleDeleteStudent(student._id, student.name || student.username)}
-                                                            disabled={deletingStudentId === student._id}
+                                                            onClick={() => handleDeleteStudent(student._id, student.name)}
                                                             style={{
                                                                 ...buttonDangerSmallStyle,
-                                                                opacity: deletingStudentId === student._id ? 0.6 : 1,
-                                                                cursor: deletingStudentId === student._id ? 'not-allowed' : 'pointer'
+                                                                opacity: deletingStudentId === student._id ? 0.7 : 1,
                                                             }}
-                                                            onMouseEnter={(e) => {
-                                                                if (deletingStudentId !== student._id) {
-                                                                    e.currentTarget.style.background = '#C62828';
-                                                                    e.currentTarget.style.transform = 'scale(1.05)';
-                                                                }
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                                e.currentTarget.style.background = DANGER_COLOR;
-                                                                e.currentTarget.style.transform = 'scale(1)';
-                                                            }}
+                                                            disabled={deletingStudentId === student._id}
                                                         >
-                                                            {deletingStudentId === student._id ? '🔄 Removing...' : '🗑️ Remove'}
+                                                            {deletingStudentId === student._id ? 'Deleting...' : 'Delete'}
                                                         </button>
                                                     </td>
                                                 </tr>

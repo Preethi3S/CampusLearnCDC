@@ -1,11 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const { listUsers } = require('../controllers/userController');
+const { 
+  listUsers, 
+  approveUser, 
+  rejectUser, 
+  deleteUser 
+} = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const { allowRoles } = require('../middleware/roleMiddleware');
-const { deleteUser } = require('../controllers/userController');
-// ... existing code ...
-// Admin-only: list users, optional ?role=student
-router.get('/', protect, allowRoles('admin'), listUsers);
-router.delete('/:id', protect, allowRoles('admin'), deleteUser);
+
+// Apply admin protection to all routes
+router.use(protect, allowRoles('admin'));
+
+// GET /api/users?role=student&status=pending
+router.get('/', listUsers);
+
+// PATCH /api/users/:id/approve
+router.patch('/:id/approve', approveUser);
+
+// PATCH /api/users/:id/reject
+router.patch('/:id/reject', rejectUser);
+
+// DELETE /api/users/:id
+router.delete('/:id', deleteUser);
+
 module.exports = router;

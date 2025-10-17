@@ -45,6 +45,71 @@ const getUsers = async (token, role) => {
 };
 
 /**
+ * Get pending user approvals
+ */
+const getPendingApprovals = async (token) => {
+  try {
+    const response = await axios.get(`${USERS_ENDPOINT}?status=pending`, {
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 10000
+    });
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'Failed to fetch pending approvals');
+    throw error;
+  }
+};
+
+/**
+ * Approve a user
+ */
+const approveUser = async (token, userId) => {
+  try {
+    const response = await axios.patch(
+      `${USERS_ENDPOINT}/${userId}/approve`,
+      {},
+      {
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 10000
+      }
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'Failed to approve user');
+    throw error;
+  }
+};
+
+/**
+ * Reject a user
+ */
+const rejectUser = async (token, userId, reason) => {
+  try {
+    const response = await axios.patch(
+      `${USERS_ENDPOINT}/${userId}/reject`,
+      { reason },
+      {
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 10000
+      }
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'Failed to reject user');
+    throw error;
+  }
+};
+
+/**
  * Delete a specific user by ID
  */
 const deleteUser = async (token, userId) => {
@@ -80,5 +145,8 @@ const handleApiError = (error, defaultMessage) => {
 
 export default {
   getUsers,
-  deleteUser
+  deleteUser,
+  getPendingApprovals,
+  approveUser,
+  rejectUser
 };
