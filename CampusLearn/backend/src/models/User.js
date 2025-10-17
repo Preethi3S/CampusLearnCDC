@@ -3,10 +3,24 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
+  username: { type: String, unique: true, sparse: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'student'], default: 'student' },
-  createdAt: { type: Date, default: Date.now }
+  role: { 
+    type: String, 
+    enum: ['admin', 'student'], 
+    default: 'student' 
+  },
+  status: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending' 
+  },
+  rejectionReason: { type: String },
+  lastLogin: { type: Date },
+  profileImage: { type: String },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
 // Hash password before save
