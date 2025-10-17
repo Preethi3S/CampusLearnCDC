@@ -10,4 +10,26 @@ const listUsers = asyncHandler(async (req, res) => {
   res.json(users);
 });
 
-module.exports = { listUsers };
+// DELETE /api/users/:id - admin only: delete a user
+const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+  
+  // Prevent deleting own account
+  if (user._id.toString() === req.user.id) {
+    res.status(400);
+    throw new Error('Cannot delete your own account');
+  }
+  
+  await User.deleteOne({ _id: user._id });
+  res.json({ message: 'User removed successfully' });
+});
+
+module.exports = { 
+  listUsers,
+  deleteUser 
+};
