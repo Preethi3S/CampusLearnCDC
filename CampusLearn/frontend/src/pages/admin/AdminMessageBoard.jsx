@@ -1,178 +1,169 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  fetchMessages,
-  createMessage,
-  updateMessage,
-  deleteMessage,
-} from '../../features/messages/messageSlice';
-
-// --- THEME CONSTANTS (Imported from AdminDashboard for consistency) ---
-const PRIMARY_COLOR = '#473E7A';
-const SOFT_BORDER_COLOR = '#EBEBEB'; 
-const WHITE = '#FFFFFF';
-const DANGER_COLOR = '#E53935'; 
-const SUCCESS_COLOR = '#10B981';
-const ACCENT_COLOR = '#4B6CB7'; // Using a blue accent for Edit
-
-// Shared button style
-const buttonBaseStyle = {
-    padding: '8px 12px',
-    borderRadius: 4,
-    border: 'none',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-};
+import { fetchMessages, createMessage, deleteMessage } from '../../features/messages/messageSlice';
 
 export default function AdminMessageBoard() {
-  const dispatch = useDispatch();
-  
-  // 🚨 FIX: Add a safeguard to ensure state.messages is defined, and items defaults to an array
-  const { items, loading } = useSelector((state) => state.messages || { items: [] });
-  const messages = Array.isArray(items) ? items : []; 
-  
-  const { token } = useSelector((state) => state.auth);
-  const [newMsg, setNewMsg] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editText, setEditText] = useState('');
+  const dispatch = useDispatch();
+  const { items, loading } = useSelector((state) => state.messages || { items: [] });
+  const { token, user } = useSelector((state) => state.auth);
+  const [newMsg, setNewMsg] = useState('');
 
-  useEffect(() => {
-    if (token) {
-        dispatch(fetchMessages(token));
-    }
-  }, [dispatch, token]);
+  useEffect(() => {
+    if (token) dispatch(fetchMessages(token));
+  }, [dispatch, token]);
 
-  // Functionality to prevent confirmation dialogs (alert/confirm)
-  const customConfirm = (message) => {
-    // In a non-modal environment like this, we'll log an error 
-    // and skip deletion if confirmation UI is not implemented.
-    console.error(`Confirmation required: ${message}. Using console-based confirmation fallback.`);
-    return true; // Assume yes for critical operations in this environment
-  };
+  const handleCreate = () => {
+    if (newMsg.trim()) {
+      dispatch(createMessage({ data: { content: newMsg }, token }));
+      setNewMsg('');
+    }
+  };
 
-  const handleCreate = () => {
-    if (newMsg.trim()) {
-      dispatch(createMessage({ data: { content: newMsg }, token }));
-      setNewMsg('');
-    }
-  };
+  const handleDelete = (id) => {
+    if (window.confirm('Are you sure you want to delete this message?')) {
+      dispatch(deleteMessage({ id, token }));
+    }
+  };
 
-  const handleUpdate = (id) => {
-    if (editText.trim()) {
-      dispatch(updateMessage({ id, data: { content: editText }, token }));
-      setEditingId(null);
-      setEditText('');
-    }
-  };
-
-  const handleDelete = (id) => {
-    // Replaced window.confirm with a console fallback (as required)
-    if (customConfirm('Delete this message?')) {
-      dispatch(deleteMessage({ id, token }));
-    }
-  };
-
-  return (
-    <div style={{ 
-        padding: '30px 0', 
-        maxWidth: 800, 
-        margin: '30px auto 0', 
-        borderTop: `1px solid ${SOFT_BORDER_COLOR}`
-    }}>
-      <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 20, color: PRIMARY_COLOR }}>
+  return (
+    <div
+      style={{
+        padding: '30px 20px',
+        maxWidth: '700px',
+        margin: '40px auto',
+        background: '#F8FAFC',
+        borderRadius: '16px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+      }}
+    >
+      <h2
+        style={{
+          fontSize: '1.8rem',
+          fontWeight: '700',
+          color: '#4B6CB7',
+          marginBottom: '20px',
+          textAlign: 'center',
+        }}
+      >
         📢 Admin Message Board
       </h2>
 
-      {/* Create message */}
-      <div style={{ display: 'flex', marginBottom: 20, gap: 8 }}>
-        <input
-          type="text"
-          placeholder="Write a new announcement..."
-          style={{ border: `1px solid ${SOFT_BORDER_COLOR}`, borderRadius: 6, padding: '10px 12px', flexGrow: 1 }}
-          value={newMsg}
-          onChange={(e) => setNewMsg(e.target.value)}
-        />
-        <button
-          onClick={handleCreate}
-          style={{ ...buttonBaseStyle, background: PRIMARY_COLOR, color: WHITE }}
-        >
-          Post
-        </button>
-      </div>
+      {/* Input Section */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          marginBottom: '25px',
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Write a new announcement..."
+          style={{
+            flexGrow: 1,
+            padding: '12px 14px',
+            border: '1px solid #CBD5E1',
+            borderRadius: '8px',
+            outline: 'none',
+            fontSize: '0.95rem',
+            transition: 'border-color 0.2s',
+          }}
+          value={newMsg}
+          onChange={(e) => setNewMsg(e.target.value)}
+          onFocus={(e) => (e.target.style.borderColor = '#4B6CB7')}
+          onBlur={(e) => (e.target.style.borderColor = '#CBD5E1')}
+        />
+        <button
+          onClick={handleCreate}
+          style={{
+            background: '#4B6CB7',
+            color: 'white',
+            border: 'none',
+            padding: '10px 16px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            transition: 'all 0.3s ease',
+          }}
+          onMouseEnter={(e) => (e.target.style.background = '#3A56A1')}
+          onMouseLeave={(e) => (e.target.style.background = '#4B6CB7')}
+        >
+          Post
+        </button>
+      </div>
 
-      {/* Messages list */}
-      {loading ? (
-        <p>Loading messages...</p>
-      ) : (
-        messages.map((msg) => (
-          <div
-            key={msg._id}
-            style={{ 
-                backgroundColor: WHITE, 
-                boxShadow: '0 4px 6px rgba(0,0,0,0.05)', 
-                padding: 16, 
-                borderRadius: 8, 
-                marginBottom: 15, 
-                border: `1px solid ${SOFT_BORDER_COLOR}`
+      {/* Message List */}
+      <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: '#1F2937' }}>
+        All Announcements
+      </h3>
+
+      {loading ? (
+        <p style={{ textAlign: 'center', color: '#6B7280' }}>Loading messages...</p>
+      ) : Array.isArray(items) && items.length > 0 ? (
+        items.map((msg) => (
+          <div
+            key={msg._id}
+            style={{
+              background: 'white',
+              border: '1px solid #E2E8F0',
+              borderRadius: '10px',
+              padding: '18px',
+              marginBottom: '15px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
             }}
-          >
-            {editingId === msg._id ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  style={{ border: `1px solid ${SOFT_BORDER_COLOR}`, borderRadius: 6, padding: '8px 10px', flexGrow: 1 }}
-                />
-                <button
-                  onClick={() => handleUpdate(msg._id)}
-                  style={{ ...buttonBaseStyle, background: SUCCESS_COLOR, color: WHITE }}
-                >
-                  Save
-                </button>
-              </div>
-            ) : (
-              <>
-                <p style={{ color: '#1F2937' }}>{msg.content}</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                  <div style={{ fontSize: 13, color: '#6B7280' }}>
-                    👍 **{msg.thumbs?.length || 0}** | 💬 **{msg.replies?.length || 0}**
-                  </div>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <button
-                      onClick={() => {
-                        setEditingId(msg._id);
-                        setEditText(msg.content);
-                      }}
-                      style={{ color: ACCENT_COLOR, border: 'none', background: 'none', cursor: 'pointer', fontSize: 13 }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(msg._id)}
-                      style={{ color: DANGER_COLOR, border: 'none', background: 'none', cursor: 'pointer', fontSize: 13 }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
+            }}
+          >
+            <p
+              style={{
+                fontWeight: '600',
+                color: '#1F2937',
+                marginBottom: '6px',
+                lineHeight: '1.5',
+              }}
+            >
+              {msg.content}
+            </p>
+            <small style={{ color: '#64748B', display: 'block', marginBottom: '10px' }}>
+              Posted by <b>{msg.sender?.name || 'Admin'}</b> on{' '}
+              {new Date(msg.createdAt).toLocaleDateString()}
+            </small>
 
-                {/* Replies */}
-                {msg.replies?.length > 0 && (
-                  <div style={{ marginTop: 15, borderTop: `1px solid ${SOFT_BORDER_COLOR}`, paddingTop: 10, fontSize: 13, color: '#4B5563' }}>
-                    **Replies from Users:**
-                    {msg.replies.map((r, i) => (
-                      <p key={i} style={{ margin: '5px 0 0 0' }}>
-                        <strong>{r.user?.name || 'User'}:</strong> {r.text}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ))
-      )}
-    </div>
-  );
+            {/* Delete Button BELOW the message */}
+            {user?.role === 'admin' && (
+              <div style={{ textAlign: 'right' }}>
+                <button
+                  onClick={() => handleDelete(msg._id)}
+                  style={{
+                    background: '#EF4444',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    transition: 'background 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => (e.target.style.background = '#DC2626')}
+                  onMouseLeave={(e) => (e.target.style.background = '#EF4444')}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        ))
+      ) : (
+        <p style={{ textAlign: 'center', color: '#6B7280' }}>No announcements yet.</p>
+      )}
+    </div>
+  );
 }

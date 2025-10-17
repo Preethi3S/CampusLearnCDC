@@ -13,16 +13,28 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error('Not authorized, token missing');
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // attach user info to request (without password)
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) {
-      res.status(401);
-      throw new Error('User not found for provided token');
-    }
-    req.user = user;
-    next();
-  } catch (err) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    const user = await User.findById(decoded.id).select('-password');
+    
+    if (!user) {
+      res.status(401);
+      throw new Error('User not found for provided token');
+    }
+    
+    // Check 1: See the user data being attached
+    console.log('👤 Auth Success - User ID:', user._id);
+    console.log('👤 Auth Success - User Role:', user.role); 
+    
+    // Check 2: Ensure ID and role are present before proceeding
+    if (!user._id || !user.role) {
+      res.status(500);
+      throw new Error('User model missing required fields (_id or role). Check database.');
+    }
+
+    req.user = user;
+    next();
+  }catch (err) {
     res.status(401);
     throw new Error('Not authorized, token invalid');
   }

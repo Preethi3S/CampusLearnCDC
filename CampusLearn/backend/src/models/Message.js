@@ -1,45 +1,23 @@
 const mongoose = require('mongoose');
 
-const messageSchema = new mongoose.Schema({
-  sender: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  role: {
-    type: String,
-    enum: ['admin', 'student', 'user'], // 🚨 FIX 8: Added 'user' role for clarity/completeness
-    required: true,
-  },
-  content: {
-    type: String,
-    required: true,
-  },
-  replies: [
-    {
-      sender: { 
-          type: mongoose.Schema.Types.ObjectId, 
-          ref: 'User',
-          required: true, // 🚨 FIX 9: Replies must have a sender
-      },
-      content: { 
-          type: String, 
-          required: true // 🚨 FIX 10: Replies must have content
-      },
-      createdAt: { type: Date, default: Date.now },
-    },
-  ],
-  reactions: [
-    {
-      user: { 
-          type: mongoose.Schema.Types.ObjectId, 
-          ref: 'User',
-          required: true, // 🚨 FIX 11: Reactions must have a user
-      },
-      type: { type: String, enum: ['thumbs_up'], default: 'thumbs_up' },
-    },
-  ],
-  createdAt: { type: Date, default: Date.now },
+const replySchema = new mongoose.Schema({
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    content: { type: String, required: true }, // Reply text is stored here
+    createdAt: { type: Date, default: Date.now }
 });
+
+const reactionSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    type: { type: String, enum: ['thumbs_up'], default: 'thumbs_up' }
+});
+
+const messageSchema = new mongoose.Schema({
+    content: { type: String, required: true }, // Main message text is stored here
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    role: { type: String, enum: ['admin', 'lecturer'], required: true }, // Sender role
+    replies: [replySchema],
+    reactions: [reactionSchema],
+    createdAt: { type: Date, default: Date.now }
+}, { timestamps: true });
 
 module.exports = mongoose.model('Message', messageSchema);

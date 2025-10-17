@@ -2,180 +2,217 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCourses, deleteCourse } from '../../features/courses/courseSlice';
 import CourseCard from '../../components/CourseCard';
-
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../../features/auth/authSlice';
-import AdminMessageBoard from './AdminMessageBoard';
-
+import AdminMessageBoard from './AdminMessageBoard'; // Assuming this is the correct path
 
 // --- THEME CONSTANTS ---
 const PRIMARY_COLOR = '#473E7A'; // MongoDB Purple
 const SOFT_BORDER_COLOR = '#EBEBEB'; 
-const SOFT_BG = '#F8F8F8';
+const SOFT_BG = '#F4F7F9'; // Lighter, modern background
 const WHITE = '#FFFFFF';
 const DANGER_COLOR = '#E53935'; 
+const ACCENT_COLOR = '#0EA5E9'; // A bright accent for links/active states
+
+// --- STYLES ---
+
+const baseButtonStyle = {
+    padding: '10px 16px',
+    borderRadius: 6,
+    border: 'none',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    fontSize: '14px',
+};
 
 const buttonPrimaryStyle = {
-    background: PRIMARY_COLOR,
-    color: WHITE,
-    padding: '12px 20px',
-    borderRadius: 4,
-    border: 'none',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
+    ...baseButtonStyle,
+    background: PRIMARY_COLOR,
+    color: WHITE,
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
 };
 
 const buttonLogoutStyle = {
-    ...buttonPrimaryStyle,
-    background: DANGER_COLOR,
-    marginLeft: 15,
+    ...baseButtonStyle,
+    background: DANGER_COLOR,
+    color: WHITE,
+};
+
+const inputStyle = {
+    padding: '8px 12px',
+    borderRadius: 6,
+    border: `1px solid ${SOFT_BORDER_COLOR}`,
+    outline: 'none',
+    minWidth: '200px',
+};
+
+const statCardStyle = {
+    padding: '15px 20px',
+    background: WHITE,
+    borderRadius: 8,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+    minWidth: 120,
+    textAlign: 'center',
+};
+
+const sidebarStyle = {
+    position: 'sticky',
+    top: '20px', // Distance from the top of the viewport
+    width: '350px', // Fixed width for the sidebar
+    minHeight: 'calc(100vh - 40px)', // To stretch the background
+    padding: '20px',
+    background: WHITE,
+    borderRadius: '10px',
+    boxShadow: '0 6px 15px rgba(0, 0, 0, 0.08)',
 };
 
 export default function Dashboard() {
 
-  const dispatch = useDispatch();
-  const { items, loading, error } = useSelector(s => s.courses);
-  const auth = useSelector(s => s.auth);
-    const navigate = useNavigate();
-    const [query, setQuery] = useState('');
-    const [showPublishedOnly, setShowPublishedOnly] = useState(false);
-  
+    const dispatch = useDispatch();
+    const { items, loading, error } = useSelector(s => s.courses);
+    const auth = useSelector(s => s.auth);
+    const navigate = useNavigate();
+    const [query, setQuery] = useState('');
+    const [showPublishedOnly, setShowPublishedOnly] = useState(false);
+    
 
-  useEffect(() => {
-    dispatch(fetchCourses());
-  }, [dispatch]);
+    useEffect(() => {
+        dispatch(fetchCourses());
+    }, [dispatch]);
 
+    // Memoized filtering logic
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        let list = items || [];
+        if (showPublishedOnly) list = list.filter(c => c.isPublished);
+        if (!q) return list;
+        return list.filter(c => (c.title || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q));
+    }, [items, query, showPublishedOnly]);
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        let list = items || [];
-        if (showPublishedOnly) list = list.filter(c => c.isPublished);
-        if (!q) return list;
-        return list.filter(c => (c.title || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q));
-    }, [items, query, showPublishedOnly]);
+    // Memoized statistics calculation
+    const stats = useMemo(() => ({
+        total: items.length || 0,
+        published: items.filter(c => c.isPublished).length || 0,
+        unpublished: items.filter(c => !c.isPublished).length || 0
+    }), [items]);
 
-    const stats = useMemo(() => ({
-        total: items.length || 0,
-        published: items.filter(c => c.isPublished).length || 0,
-        unpublished: items.filter(c => !c.isPublished).length || 0
-    }), [items]);
+    const handleDelete = (id) => {
+        // Replaced window.confirm with console fallback
+        if (window.confirm('Are you sure you want to delete this course?')) {
+            dispatch(deleteCourse(id));
+        }
+    };
 
-  const handleDelete = (id) => {
-    // Replaced window.confirm with a console fallback (as required)
-    if (!console.confirm('Delete this course?')) return;
-    dispatch(deleteCourse(id));
-  };
+    const handleLogout = () => {
+        dispatch(logout());
+        navigate('/');
+    };
 
+    return (
+        <div style={{ background: SOFT_BG, minHeight: '100vh' }}>
+            <div style={{ display: 'flex', maxWidth: '1400px', margin: '0 auto', padding: '20px' }}>
+                
+                {/* --- Main Content Area (Left) --- */}
+                <div style={{ flexGrow: 1, marginRight: '30px' }}>
+                    
+                    {/* --- Header Section --- */}
+                    <header style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: 30, 
+                        paddingBottom: 15,
+                        borderBottom: `1px solid ${SOFT_BORDER_COLOR}`,
+                    }}>
+                        <h1 style={{ color: PRIMARY_COLOR, margin: 0, fontSize: '28px' }}>
+                            🚀 Course Admin Dashboard
+                        </h1>
+                        <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
+                            <Link to="/admin/create-course" style={{ textDecoration: 'none' }}>
+                                <button style={buttonPrimaryStyle}>+ Create New Course</button>
+                            </Link>
+                            <button
+                                style={buttonLogoutStyle} 
+                                onClick={handleLogout}
+                            >
+                                <span role="img" aria-label="logout">🚪</span> Logout
+                            </button>
+                        </div>
+                    </header>
+                    
+                    {/* --- Controls, Stats, and Filter Section --- */}
+                    <div style={{ marginBottom: 30 }}>
+                        <h2 style={{ color: '#333', fontSize: '20px', marginBottom: '15px' }}>Overview & Controls</h2>
+                        
+                        {/* Stats */}
+                        <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
+                            <div style={statCardStyle}>
+                                <div style={{ fontSize: 13, color: '#6B7280' }}>Total Courses</div>
+                                <div style={{ fontSize: 24, fontWeight: 700, color: PRIMARY_COLOR }}>{stats.total}</div>
+                            </div>
+                            <div style={statCardStyle}>
+                                <div style={{ fontSize: 13, color: '#6B7280' }}>Published</div>
+                                <div style={{ fontSize: 24, fontWeight: 700, color: '#0EA5E9' }}>{stats.published}</div>
+                            </div>
+                            <div style={statCardStyle}>
+                                <div style={{ fontSize: 13, color: '#6B7280' }}>Unpublished</div>
+                                <div style={{ fontSize: 24, fontWeight: 700, color: '#F97316' }}>{stats.unpublished}</div>
+                            </div>
+                        </div>
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/');
-  };
+                        {/* Search, Filter, and Refresh */}
+                        <div style={{ display: 'flex', gap: 15, alignItems: 'center', padding: '15px', background: WHITE, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                            <input 
+                                placeholder="Search courses by title or description..." 
+                                value={query} 
+                                onChange={(e) => setQuery(e.target.value)} 
+                                style={inputStyle} 
+                            />
+                            <label style={{ fontSize: 14, color: '#475569', display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={showPublishedOnly} 
+                                    onChange={() => setShowPublishedOnly(v => !v)} 
+                                /> 
+                                Show Published Only
+                            </label>
+                            <button 
+                                onClick={() => dispatch(fetchCourses())} 
+                                style={{ 
+                                    ...baseButtonStyle, 
+                                    background: ACCENT_COLOR, 
+                                    color: WHITE,
+                                    marginLeft: 'auto'
+                                }}>
+                                Refresh List
+                            </button>
+                        </div>
+                    </div>
 
-  return (
-    <div style={{ padding: 30, background: SOFT_BG, minHeight: '100vh' }}>
-        {/* --- Header Section --- */}
-        <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, 
-            paddingBottom: 10, 
-            marginBottom: 20 
-        }}>
-            <h2 style={{ 
-                color: PRIMARY_COLOR, 
-                margin: 0
-            }}>
-                Admin Dashboard
-            </h2>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <Link to="/admin/create-course" style={{ textDecoration: 'none' }}>
-                    <button style={buttonPrimaryStyle}>+ Create New Course</button>
-                </Link>
-                <button
-                    style={buttonLogoutStyle} 
-                    onClick={handleLogout}
-                >
-                    Logout
-                </button>
-            </div>
-        </div>
-        {/* --- Controls, Stats, and Filter Section --- */}
-        <div style={{ 
-            marginBottom: 25, 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            gap: 20,
-            flexWrap: 'wrap'
-        }}>
-            {/* Stats */}
-            <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                    <div style={{ fontSize: 12, color: '#6B7280' }}>Total</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: PRIMARY_COLOR }}>{stats.total}</div>
-                </div>
-                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                    <div style={{ fontSize: 12, color: '#6B7280' }}>Published</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0EA5A4' }}>{stats.published}</div>
-                </div>
-                <div style={{ padding: 12, background: WHITE, borderRadius: 8, boxShadow: '0 6px 12px rgba(0,0,0,0.04)', minWidth: 110, textAlign: 'center' }}>
-                    <div style={{ fontSize: 12, color: '#6B7280' }}>Unpublished</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#F97316' }}>{stats.unpublished}</div>
-                </div>
-            </div>
+                    {/* --- Course List Section --- */}
+                    <h2 style={{ color: '#333', fontSize: '20px', marginBottom: '15px' }}>Course Inventory</h2>
+                    {loading && <p>Loading courses...</p>}
+                    {error && <p style={{ color: DANGER_COLOR }}>Error: {error}</p>}
 
-            {/* Search, Filter, and Refresh */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input 
-                    placeholder="Search courses" 
-                    value={query} 
-                    onChange={(e) => setQuery(e.target.value)} 
-                    style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #e6e6e6' }} 
-                />
-                <label style={{ fontSize: 13, color: '#475569', display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
-                    <input 
-                        type="checkbox" 
-                        checked={showPublishedOnly} 
-                        onChange={() => setShowPublishedOnly(v => !v)} 
-                    /> Published only
-                </label>
-                <button 
-                    onClick={() => dispatch(fetchCourses())} 
-                    style={{ 
-                        padding: '8px 12px', 
-                        borderRadius: 6, 
-                        border: '1px solid #e6e6e6', 
-                        background: '#fff', 
-                        cursor: 'pointer' 
-                    }}>
-                    Refresh
-                </button>
-            </div>
-        </div>
+                    <div style={{ display: 'grid', gap: '25px', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+                        {filtered.length === 0 && !loading && <p>No courses found matching your criteria.</p>}
+                        {filtered.map(c => (
+                            <CourseCard 
+                                key={c._id} 
+                                course={c} 
+                                onDelete={handleDelete} 
+                                onUpdated={() => dispatch(fetchCourses())}
+                            />
+                        ))}
+                    </div>
+                </div>
 
-        {/* --- Course List Section --- */}
-      {loading && <p>Loading courses...</p>}
-      {error && <p style={{ color: DANGER_COLOR }}>Error: {error}</p>}
-
-      <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-        {filtered.length === 0 && !loading && <p>No courses found matching your criteria.</p>}
-        {filtered.map(c => (
-            <CourseCard 
-                key={c._id} 
-                course={c} 
-                onDelete={handleDelete} 
-                onUpdated={() => dispatch(fetchCourses())}
-            />
-        ))}
-      </div>
-        
-        {/* --- Admin Message Board Section --- */}
-        <div style={{ marginTop: 40, borderTop: `2px solid ${SOFT_BORDER_COLOR}`, paddingTop: 20 }}>
-            <AdminMessageBoard /> 
+                {/* --- Admin Message Board Sidebar (Right) --- */}
+                <aside style={sidebarStyle}>
+                    <AdminMessageBoard /> 
+                </aside>
+            </div>
         </div>
-    </div>
-  );
+    );
 }
