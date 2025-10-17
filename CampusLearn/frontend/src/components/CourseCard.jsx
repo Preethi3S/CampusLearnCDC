@@ -11,12 +11,11 @@ export default function CourseCard({ course, onDelete, onUpdated }) {
     // Check if the new subCourses structure is present
     const hasSubCourses = Array.isArray(course.subCourses) && course.subCourses.length > 0;
 
-    // --- 🌟 UPDATED COUNTING LOGIC 🌟 ---
+    // --- UPDATED COUNTING LOGIC ---
     let totalLevels = 0;
     let totalModules = 0;
 
     if (hasSubCourses) {
-        // Count levels and modules within the nested subCourses structure
         course.subCourses.forEach(subCourse => {
             if (Array.isArray(subCourse.levels)) {
                 totalLevels += subCourse.levels.length;
@@ -28,14 +27,12 @@ export default function CourseCard({ course, onDelete, onUpdated }) {
             }
         });
     } else {
-        // Fallback to old flat structure for legacy courses
         totalLevels = Array.isArray(course.levels) ? course.levels.length : 0;
         totalModules = (course.levels || []).reduce((sum, l) => sum + ((l.modules && l.modules.length) || 0), 0);
     }
     
     const displayLevels = totalLevels;
     const displayModules = totalModules;
-    // ------------------------------------
     
     const updated = course.updatedAt ? new Date(course.updatedAt) : (course.createdAt ? new Date(course.createdAt) : null);
     const price = course.price !== undefined ? course.price.toFixed(2) : null;
@@ -43,26 +40,26 @@ export default function CourseCard({ course, onDelete, onUpdated }) {
     return (
         <div style={{
             border: '1px solid #e6e6e6',
-            padding: 14,
-            borderRadius: 8,
-            marginBottom: 12,
+            padding: 20,
+            borderRadius: 10,
+            marginBottom: 18,
             background: '#fff',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            minHeight: 200
+            minHeight: 260, // increased height
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
         }}>
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
                     <div style={{ flex: 1 }}>
                         <h3 style={{ margin: 0, color: '#1F2937' }}>{course.title}</h3>
-                        <p style={{ margin: '6px 15x 0', color: '#374151', fontSize: 14 }}>
+                        <p style={{ margin: '6px 0 0', color: '#374151', fontSize: 14 }}>
                             {course.description || 'No description'}
                         </p>
-                        {/* 🌟 New Tag: Sub-Courses Indicator */}
                         {hasSubCourses && (
                             <div style={{ 
-                                marginTop: 4, 
+                                marginTop: 6, 
                                 fontSize: 12, 
                                 color: '#4B6CB7', 
                                 fontWeight: 700 
@@ -78,24 +75,22 @@ export default function CourseCard({ course, onDelete, onUpdated }) {
                     </div>
                 </div>
 
-                <div style={{ marginTop: 45, display: 'flex', gap: 25, alignItems: 'center', color: '#6B7280', fontSize: 13 }}>
+                <div style={{ marginTop: 50, display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'center', color: '#6B7280', fontSize: 13 }}>
                     <div>Levels: <strong style={{ color: '#111827' }}>{displayLevels}</strong></div>
                     <div>Modules: <strong style={{ color: '#111827' }}>{displayModules}</strong></div>
-                    {/* 🌟 New Tag: Price */}
                     {price && <div>Price: <strong style={{ color: '#111827' }}>${price}</strong></div>}
                     <div>By: <strong style={{ color: '#111827' }}>{course.createdBy?.name || '—'}</strong></div>
                     {updated && <div>Updated: <strong style={{ color: '#111827' }}>{updated.toLocaleDateString()}</strong></div>}
                 </div>
             </div>
 
-            <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
                 <Link to={`/admin/manage-course/${course._id}`}>
-                    <button style={{ background: '#4B6CB7', color: 'white', border: 0, padding: '8px 12px', borderRadius: 6, cursor: 'pointer' }}>Manage</button>
+                    <button style={{ background: '#4B6CB7', color: 'white', border: 0, padding: '10px 14px', borderRadius: 6, cursor: 'pointer' }}>Manage</button>
                 </Link>
 
-                <button onClick={() => onDelete(course._id)} style={{ color: 'white', background: '#e53935', border: 0, padding: '8px 12px', borderRadius: 6, cursor: 'pointer' }}>Delete</button>
+                <button onClick={() => onDelete(course._id)} style={{ color: 'white', background: '#e53935', border: 0, padding: '10px 14px', borderRadius: 6, cursor: 'pointer' }}>Delete</button>
 
-                {/* Publish toggle */}
                 <button
                     onClick={async () => {
                         try {
@@ -106,19 +101,19 @@ export default function CourseCard({ course, onDelete, onUpdated }) {
                             alert(err.response?.data?.message || 'Failed to change publish state');
                         }
                     }}
-                    style={{ marginLeft: 6, padding: '8px 12px', borderRadius: 6, border: '1px solid #e6e6e6', background: published ? '#fff' : '#10B981', color: published ? '#111' : '#fff', cursor: 'pointer' }}
+                    style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #e6e6e6', background: published ? '#fff' : '#10B981', color: published ? '#111' : '#fff', cursor: 'pointer' }}
                 >
                     {published ? 'Unpublish' : 'Publish'}
                 </button>
 
-                {/* View Progress */}
                 <button
                     onClick={() => navigate(`/admin/course-progress/${course._id}`)}
-                    style={{ marginLeft: 6, padding: '8px 12px', borderRadius: 6, border: '1px solid #4B6CB7', background: '#4B6CB7', color: '#fff', cursor: 'pointer' }}
+                    style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #4B6CB7', background: '#4B6CB7', color: '#fff', cursor: 'pointer' }}
                 >
-                    View Progress
+                    Progress
                 </button>
             </div>
         </div>
     );
 }
+
