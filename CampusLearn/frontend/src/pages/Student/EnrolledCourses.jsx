@@ -1,3 +1,5 @@
+// File: src/pages/student/EnrolledCourses.jsx (NO CHANGES NEEDED)
+
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMyCourses } from '../../features/progress/progressSlice';
@@ -14,14 +16,14 @@ const MUTE_GRAY = '#666666';
 
 // Shared button style
 const buttonPrimaryStyle = {
-    background: PRIMARY_COLOR,
-    color: WHITE,
-    padding: '10px 18px',
-    borderRadius: 4,
-    border: 'none',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
+    background: PRIMARY_COLOR,
+    color: WHITE,
+    padding: '10px 18px',
+    borderRadius: 4,
+    border: 'none',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
 };
 
 export default function EnrolledCourses() {
@@ -36,8 +38,8 @@ export default function EnrolledCourses() {
   return (
     <div style={{ padding: 30, background: SOFT_BG, minHeight: '100vh' }}>
       <h2 style={{ color: PRIMARY_COLOR, borderBottom: `2px solid ${SOFT_BORDER_COLOR}`, paddingBottom: 10, marginBottom: 30 }}>
-          My Enrolled Courses
-      </h2>
+          My Enrolled Courses
+      </h2>
       {courses.length === 0 && <p style={{ color: MUTE_GRAY }}>No enrolled courses yet. Go to the dashboard to enroll!</p>}
       
       <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
@@ -46,16 +48,16 @@ export default function EnrolledCourses() {
 
           return (
             <div 
-                key={c._id} 
-                style={{ 
-                    border: `1px solid ${SOFT_BORDER_COLOR}`, 
-                    padding: 20, 
-                    borderRadius: 8, 
-                    background: WHITE,
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
-                    borderLeft: `5px solid ${ACCENT_COLOR}`
-                }}
-            >
+                key={c._id} 
+                style={{ 
+                    border: `1px solid ${SOFT_BORDER_COLOR}`, 
+                    padding: 20, 
+                    borderRadius: 8, 
+                    background: WHITE,
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
+                    borderLeft: `5px solid ${ACCENT_COLOR}`
+                }}
+            >
               <h3>{c.course.title}</h3>
               <p style={{ color: MUTE_GRAY, fontSize: '0.9em' }}>{c.course.description}</p>
               
