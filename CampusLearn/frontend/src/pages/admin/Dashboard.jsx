@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCourses, deleteCourse } from '../../features/courses/courseSlice';
-import CourseCard from '../../components/CourseCard'; 
-import { Link, useNavigate } from 'react-router-dom';
+import CourseCard from '../../components/CourseCard';
+import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { logout } from '../../features/auth/authSlice';
 import userApi from '../../api/userApi';
 import AdminMessageBoard from './AdminMessageBoard';
@@ -386,21 +386,35 @@ export default function AdminDashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredStudents.map((student, index) => {
-                                                const status = getStatusDisplay(student.status);
-                                                const isDeleting = deletingStudentId === student._id;
-
-                                                return (
-                                                    <tr key={student._id} style={{ borderBottom: `1px solid ${SOFT_BORDER_COLOR}`, background: index % 2 === 0 ? WHITE : SOFT_BG }}>
-                                                        <td style={{ padding: '12px 20px', fontSize: 14, fontWeight: 600 }}>{student.name}</td>
-                                                        <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>{student.email}</td>
-                                                        <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.username || '-'}</td>
-                                                        <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>
-                                                            {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : 'N/A'}
-                                                        </td>
-                                                        <td style={{ padding: '12px 20px', fontSize: 14 }}>
-                                                            <span style={statusBadgeStyle(status.color, status.bg)}>
-                                                                {status.text}
+                                            {filteredStudents.map((student) => (
+                                                <tr key={student._id} style={{ borderTop: `1px solid ${SOFT_BORDER_COLOR}` }}>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>
+                                                        <NavLink 
+                                                            to={`/admin/students/${student._id}`}
+                                                            className="text-purple-700 hover:text-purple-900 hover:underline"
+                                                        >
+                                                            {student.name}
+                                                        </NavLink>
+                                                    </td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>{student.email}</td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.username || '-'}</td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>
+                                                        {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : 'N/A'}
+                                                    </td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>
+                                                        {student.status === 'approved' ? (
+                                                            <span style={{
+                                                                display: 'inline-block',
+                                                                padding: '6px 12px',
+                                                                borderRadius: 12,
+                                                                fontSize: 12,
+                                                                fontWeight: 500,
+                                                                backgroundColor: '#E6F6EC',
+                                                                color: '#10B981',
+                                                                minWidth: '100px',
+                                                                textAlign: 'center'
+                                                            }}>
+                                                                Approved
                                                             </span>
                                                         </td>
                                                         <td style={{ padding: '12px 20px', textAlign: 'center' }}>
