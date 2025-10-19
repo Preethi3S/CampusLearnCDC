@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCourses, deleteCourse } from '../../features/courses/courseSlice';
 import CourseCard from '../../components/CourseCard';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { logout } from '../../features/auth/authSlice';
 import userApi from '../../api/userApi';
 
@@ -584,7 +584,14 @@ export default function AdminDashboard() {
                                         <tbody>
                                             {filteredStudents.map((student) => (
                                                 <tr key={student._id} style={{ borderTop: `1px solid ${SOFT_BORDER_COLOR}` }}>
-                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.name}</td>
+                                                    <td style={{ padding: '12px 20px', fontSize: 14 }}>
+                                                        <NavLink 
+                                                            to={`/admin/students/${student._id}`}
+                                                            className="text-purple-700 hover:text-purple-900 hover:underline"
+                                                        >
+                                                            {student.name}
+                                                        </NavLink>
+                                                    </td>
                                                     <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>{student.email}</td>
                                                     <td style={{ padding: '12px 20px', fontSize: 14 }}>{student.username || '-'}</td>
                                                     <td style={{ padding: '12px 20px', fontSize: 14, color: MUTE_GRAY }}>

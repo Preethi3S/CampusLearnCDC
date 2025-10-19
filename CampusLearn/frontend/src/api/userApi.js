@@ -143,10 +143,122 @@ const handleApiError = (error, defaultMessage) => {
   }
 };
 
+/**
+ * Get a single user by ID
+ */
+const getUserById = async (token, userId) => {
+  // Validate inputs
+  if (!userId || typeof userId !== 'string') {
+    console.error('Invalid user ID:', userId);
+    throw new Error('Invalid student ID');
+  }
+
+  if (!token) {
+    console.error('No authentication token provided');
+    throw new Error('Authentication required');
+  }
+
+  console.log(`[getUserById] Fetching user with ID: ${userId}`);
+  
+  try {
+    const url = `${USERS_ENDPOINT}/${userId}`;
+    console.log(`[getUserById] Request URL: ${url}`);
+    
+    const response = await axios.get(url, {
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 10000,
+      validateStatus: status => status >= 200 && status < 300
+    });
+    
+    console.log('[getUserById] Response received:', {
+      status: response.status,
+      data: response.data ? 'Data received' : 'No data in response'
+    });
+    
+    if (!response.data) {
+      throw new Error('No data returned from server');
+    }
+    
+    return response.data;
+    
+  } catch (error) {
+    const errorDetails = {
+      message: error.message,
+      status: error.response?.status,
+      response: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: {
+          ...error.config?.headers,
+          // Don't log the full token for security
+          Authorization: error.config?.headers?.Authorization ? 'Bearer [token]' : undefined
+        }
+      }
+    };
+    
+    console.error('[getUserById] Error details:', errorDetails);
+    
+    if (error.response) {
+      if (error.response.status === 401) {
+        throw new Error('Your session has expired. Please log in again.');
+      } else if (error.response.status === 403) {
+        throw new Error('You do not have permission to view this student\'s profile');
+      } else if (error.response.status === 404) {
+        // Check if the response has a specific message
+        const serverMessage = error.response.data?.message;
+        if (serverMessage) {
+          throw new Error(serverMessage);
+        }
+        throw new Error(`No student found with ID: ${userId}`);
+      } else if (error.response.status >= 500) {
+        throw new Error('Server error. Please try again later.');
+      } else if (error.response.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received:', error.request);
+      throw new Error('Unable to connect to the server. Please check your internet connection.');
+    }
+    
+    throw new Error(error.message || 'Failed to fetch student information');
+  }
+};
+
+/**
+ * Get student's enrolled courses with progress
+ */
+const getStudentEnrollments = async (token, studentId) => {
+  try {
+    const response = await axios.get(`${USERS_ENDPOINT}/${studentId}/enrollments`, {
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 10000
+    });
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching student enrollments:', error);
+    // Return empty array if no enrollments found
+    if (error.response?.status === 404) {
+      return [];
+    }
+    handleApiError(error, 'Failed to fetch student enrollments');
+    throw error;
+  }
+};
+
 export default {
   getUsers,
   deleteUser,
   getPendingApprovals,
   approveUser,
-  rejectUser
+  rejectUser,
+  getUserById,
+  getStudentEnrollments
 };

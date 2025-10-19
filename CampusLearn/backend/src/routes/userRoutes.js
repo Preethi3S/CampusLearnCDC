@@ -4,7 +4,8 @@ const {
   listUsers, 
   approveUser, 
   rejectUser, 
-  deleteUser 
+  deleteUser,
+  getStudentEnrollments
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const { allowRoles } = require('../middleware/roleMiddleware');
@@ -23,5 +24,8 @@ router.patch('/:id/reject', rejectUser);
 
 // DELETE /api/users/:id
 router.delete('/:id', deleteUser);
+
+// GET /api/users/:studentId/enrollments
+router.get('/:studentId/enrollments', getStudentEnrollments);
 
 module.exports = router;
