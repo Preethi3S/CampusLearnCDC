@@ -7,6 +7,7 @@ const courseRoutes = require('./routes/courseRoutes');
 const progressRoutes = require('./routes/progressRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const userRoutes = require('./routes/userRoutes');
+const MessagesRoutes = require('./routes/messageRoutes');
 
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/messages', MessagesRoutes);
 
 // error handler (simple)
 app.use((err, req, res, next) => {
