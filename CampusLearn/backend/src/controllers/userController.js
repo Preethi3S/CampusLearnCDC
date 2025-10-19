@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
+const Progress = require('../models/Progress');
 
 // GET /api/users - admin only: list users (with optional filters)
 const listUsers = asyncHandler(async (req, res) => {
@@ -101,9 +102,81 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.json({ message: 'User removed successfully' });
 });
 
+// Get student's enrolled courses with progress
+// Get student's enrolled courses with progress
+const getStudentEnrollments = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        
+        // Verify student exists
+        const student = await User.findById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        // Find all progress records for this student
+        const enrollments = await Progress.find({ student: studentId })
+            .populate({
+                path: 'course',
+                select: 'title code description',
+                // Ensure the reference is not null
+                match: { _id: { $exists: true } }
+            })
+            .select('course enrolledAt levels')
+            .lean();
+        
+        console.log('Raw enrollments data:', JSON.stringify(enrollments, null, 2));
+        
+        // Filter out any enrollments where course is null or undefined
+        const validEnrollments = enrollments.filter(e => e.course);
+        
+        // Format the response
+        const formattedEnrollments = validEnrollments.map(enrollment => {
+            console.log('Processing enrollment:', enrollment._id, 'Course:', enrollment.course);
+            return {
+                _id: enrollment._id,
+                course: {
+                    _id: enrollment.course._id,
+                    title: enrollment.course.title || 'Unknown Course',
+                    code: enrollment.course.code || 'N/A',
+                    description: enrollment.course.description || ''
+                },
+                enrolledAt: enrollment.enrolledAt,
+                progress: calculateCourseProgress(enrollment.levels)
+            };
+        });
+        
+        console.log('Formatted enrollments:', JSON.stringify(formattedEnrollments, null, 2));
+        res.json(formattedEnrollments);
+    } catch (error) {
+        console.error('Error fetching student enrollments:', error);
+        res.status(500).json({ 
+            message: 'Error fetching student enrollments',
+            error: error.message 
+        });
+    }
+};
+
+// Helper function to calculate course progress percentage
+function calculateCourseProgress(levels) {
+    if (!levels || levels.length === 0) return 0;
+    
+    let totalModules = 0;
+    let completedModules = 0;
+    
+    levels.forEach(level => {
+        totalModules += level.modules.length;
+        completedModules += level.modules.filter(m => m.completed).length;
+    });
+    
+    return totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+}
+
+// Export all controller functions
 module.exports = { 
-  listUsers, 
-  approveUser, 
-  rejectUser, 
-  deleteUser 
+    listUsers, 
+    approveUser, 
+    rejectUser, 
+    deleteUser,
+    getStudentEnrollments
 };
