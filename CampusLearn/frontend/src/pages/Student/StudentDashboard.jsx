@@ -55,7 +55,8 @@ export default function StudentDashboard() {
   const fetchCourses = async () => {
     setLoading(true);
     try {
-      const allCourses = await courseApi.getCourses(token);
+      // Only fetch published courses for students
+      const allCourses = await courseApi.getCourses(token, true);
       const enrolledProgresses = await progressApi.getMyCourses(token);
       const enrolledIds = enrolledProgresses
         .filter((p) => p.course?._id)

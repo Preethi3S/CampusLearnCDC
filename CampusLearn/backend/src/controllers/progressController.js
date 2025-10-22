@@ -175,14 +175,26 @@ const completeModule = asyncHandler(async (req, res) => {
   levelProgress.modules[moduleIndex].completed = true;
   levelProgress.modules[moduleIndex].completedAt = new Date();
 
-  progress.markModified('levels');
-  await progress.save();
-  res.json(progress);
+  progress.markModified('levels');
+  await progress.save();
+  res.json(progress);
+});
+
+// Get all enrollments (admin only)
+const getAllEnrollments = asyncHandler(async (req, res) => {
+  // Get all progress records and populate course and student details
+  const enrollments = await Progress.find({})
+    .populate('course', 'title')
+    .populate('student', 'name email')
+    .sort({ createdAt: -1 });
+    
+  res.json(enrollments);
 });
 
 module.exports = {
-  enrollCourse,
-  getMyCourses,
-  getCourseProgress,
-  completeModule
+  enrollCourse,
+  getMyCourses,
+  getCourseProgress,
+  completeModule,
+  getAllEnrollments
 };

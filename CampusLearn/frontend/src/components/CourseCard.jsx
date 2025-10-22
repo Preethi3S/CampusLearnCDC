@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { togglePublish } from '../features/courses/courseSlice';
 import courseApi from '../api/courseApi';
 
 export default function CourseCard({ course, onDelete, onUpdated }) {
+  const dispatch = useDispatch();
   const token = useSelector(s => s.auth.token);
   const published = !!course.isPublished;
   const levels = Array.isArray(course.levels) ? course.levels.length : 0;
@@ -55,16 +57,16 @@ export default function CourseCard({ course, onDelete, onUpdated }) {
 
         {/* Publish toggle */}
         <button
-          onClick={async () => {
-            try {
-              await courseApi.updateCourse(course._id, { isPublished: !published }, token);
-              if (typeof onUpdated === 'function') onUpdated();
-            } catch (err) {
-              console.error('Failed to toggle publish', err);
-              alert(err.response?.data?.message || 'Failed to change publish state');
-            }
+          onClick={() => dispatch(togglePublish({ id: course._id, isPublished: published }))}
+          style={{ 
+            marginLeft: 6, 
+            padding: '8px 12px', 
+            borderRadius: 6, 
+            border: '1px solid #e6e6e6', 
+            background: published ? '#fff' : '#10B981', 
+            color: published ? '#111' : '#fff', 
+            cursor: 'pointer' 
           }}
-          style={{ marginLeft: 6, padding: '8px 12px', borderRadius: 6, border: '1px solid #e6e6e6', background: published ? '#fff' : '#10B981', color: published ? '#111' : '#fff', cursor: 'pointer' }}
         >
           {published ? 'Unpublish' : 'Publish'}
         </button>

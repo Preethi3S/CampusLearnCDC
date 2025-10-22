@@ -1,38 +1,64 @@
 const asyncHandler = require('express-async-handler');
 const Course = require('../models/Course');
-
+const User = require('../models/User');
 const { saveQuizForModule } = require('./quizController');
 
 const createCourse = asyncHandler(async (req, res) => {
-  const { title, description, isPublished, prerequisiteCourse } = req.body;
-  if (!title) {
-    res.status(400);
-    throw new Error('Course title is required');
-  }
-  const course = await Course.create({
-    title,
-    description,
-    isPublished: !!isPublished,
-    createdBy: req.user._id,
-    // 🎯 ADDED: Save prerequisite course ID
-    prerequisiteCourse: prerequisiteCourse || null 
-  });
-  res.status(201).json(course);
+  const { title, description, isPublished, prerequisiteCourse } = req.body;
+  if (!title) {
+    res.status(400);
+    throw new Error('Course title is required');
+  }
+  const course = await Course.create({
+    title,
+    description,
+    isPublished: !!isPublished,
+    createdBy: req.user._id,
+    prerequisiteCourse: prerequisiteCourse || null
+  });
+
+  res.json(course);
 });
 
 const getCourses = asyncHandler(async (req, res) => {
-  const filter = {};
-  if (req.query.published === 'true') filter.isPublished = true;
-  // Populate prerequisiteCourse as well
-  const courses = await Course.find(filter)
-    .populate('createdBy', 'name email')
-    .populate('prerequisiteCourse', 'title'); 
-  res.json(courses);
+  try {
+    const filter = {};
+    if (req.query.published === 'true') filter.isPublished = true;
+    
+    // Get all courses with basic population
+    let courses = await Course.find(filter)
+      .populate('createdBy', 'name email')
+      .populate('prerequisiteCourse', 'title')
+      .lean(); // Convert to plain JavaScript objects
+    
+    // Get enrollment counts for each course
+    const enrollmentCounts = await User.aggregate([
+      { $unwind: "$enrolledCourses" },
+      { $group: { _id: "$enrolledCourses.course", count: { $sum: 1 } } }
+    ]);
+    
+    // Create a map of courseId -> enrollment count
+    const enrollmentMap = new Map();
+    enrollmentCounts.forEach(item => {
+      enrollmentMap.set(item._id.toString(), item.count);
+    });
+    
+    // Add enrollment count to each course
+    courses = courses.map(course => ({
+      ...course,
+      studentCount: enrollmentMap.get(course._id.toString()) || 0
+    }));
+    
+    res.json(courses);
+  } catch (error) {
+    console.error('Error fetching courses with enrollment counts:', error);
+    res.status(500).json({ message: 'Error fetching courses', error: error.message });
+  }
 });
 
 const getCourseById = asyncHandler(async (req, res) => {
-  // Populate prerequisiteCourse as well
-  const course = await Course.findById(req.params.id)
+  // Populate prerequisiteCourse as well
+  const course = await Course.findById(req.params.id)
     .populate('createdBy', 'name email')
     .populate('prerequisiteCourse', 'title'); 
   if (!course) {

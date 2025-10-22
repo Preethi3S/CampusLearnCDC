@@ -369,7 +369,7 @@ const StudentProfile = () => {
                                         <td style={styles.td}>
                                             <div style={{ fontWeight: '500' }}>{enrollment.course?.title || 'Unknown Course'}</div>
                                             <div style={{ fontSize: '14px', color: '#6B7280' }}>
-                                                {enrollment.course?.code || ''}
+                                                {/* {enrollment.course?.code || ''} */}
                                             </div>
                                         </td>
                                         <td style={styles.td}>

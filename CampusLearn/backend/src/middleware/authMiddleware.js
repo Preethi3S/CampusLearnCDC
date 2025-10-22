@@ -42,4 +42,24 @@ const protect = asyncHandler(async (req, res, next) => {
 
 
 
-module.exports = { protect  };
+// Role-based access control middleware
+const allowRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      res.status(401);
+      throw new Error('Not authorized - no user information');
+    }
+
+    if (!roles.includes(req.user.role)) {
+      res.status(403);
+      throw new Error(`Not authorized - requires one of these roles: ${roles.join(', ')}`);
+    }
+    
+    next();
+  };
+};
+
+module.exports = { 
+  protect,
+  allowRoles
+};
