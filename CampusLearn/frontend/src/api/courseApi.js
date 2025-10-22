@@ -8,8 +8,9 @@ const withToken = (token) => (token ? { headers: { Authorization: `Bearer ${toke
 
 export default {
   // Fetch all courses (public)
-  getCourses: async (token) => {
-    const res = await instance.get('/courses', withToken(token));
+  getCourses: async (token, publishedOnly = true) => {
+    const params = publishedOnly ? { params: { published: 'true' } } : {};
+    const res = await instance.get('/courses', { ...withToken(token), ...params });
     return res.data;
   },
 
@@ -45,6 +46,11 @@ export default {
 ,
   removeModule: async (courseId, levelId, moduleId, token) => {
     const res = await instance.delete(`/courses/${courseId}/levels/${levelId}/modules/${moduleId}`, withToken(token));
+    return res.data;
+  },
+
+  togglePublish: async (id, isPublished, token) => {
+    const res = await instance.put(`/courses/${id}`, { isPublished }, withToken(token));
     return res.data;
   }
 };

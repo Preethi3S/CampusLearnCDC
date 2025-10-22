@@ -1,31 +1,104 @@
+/* === Popup Container === */
+.popup-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 30px 28px;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  margin: 40px auto;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(200, 200, 200, 0.3);
+}
+
+.popup-container:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+}
+
+/* === Labels === */
+.popup-container label {
+  display: block;
+  color: #1a1a1a;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+  letter-spacing: 0.2px;
+}
+
+/* === Inputs, Textareas, Select === */
 .popup-container input,
 .popup-container textarea,
 .popup-container select {
-  color: #000; /* black text */
-  background: #fff; /* white background */
-  border: 1px solid #ccc;
-  padding: 8px;
-  border-radius: 4px;
+  color: #111;
+  background: linear-gradient(145deg, #ffffff, #f5f6fa);
+  border: 1.5px solid #d9d9d9;
+  padding: 12px 14px;
+  border-radius: 10px;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  transition: all 0.25s ease;
+  outline: none;
 }
 
-.popup-container label {
-  color: #000; /* make label text black too */
+/* Focus with glow */
+.popup-container input:focus,
+.popup-container textarea:focus,
+.popup-container select:focus {
+  border-color: #4b6cb7;
+  box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.2);
+  background: #fff;
 }
 
+/* === Buttons === */
 .popup-container button {
-  background-color: #4B6CB7;
+  background: linear-gradient(135deg, #4b6cb7, #182848);
   color: #fff;
-  padding: 10px 18px;
+  padding: 12px 22px;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
-  font-weight: bold;
-  margin-right: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.4px;
+  transition: all 0.3s ease;
+  margin-right: 12px;
+  box-shadow: 0 4px 12px rgba(75, 108, 183, 0.3);
 }
 
+/* Hover & Active states */
+.popup-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(75, 108, 183, 0.4);
+}
+
+.popup-container button:active {
+  transform: translateY(1px);
+}
+
+/* Cancel / Secondary Button */
 .popup-container button[type="button"] {
-  background-color: #E53935;
+  background: linear-gradient(135deg, #e53935, #b71c1c);
+  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.25);
+}
+
+.popup-container button[type="button"]:hover {
+  box-shadow: 0 6px 16px rgba(229, 57, 53, 0.4);
+}
+
+/* === Responsive Design === */
+@media (max-width: 520px) {
+  .popup-container {
+    padding: 22px;
+    margin: 20px;
+  }
+
+  .popup-container button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+  }
 }

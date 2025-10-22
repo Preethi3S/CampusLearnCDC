@@ -4,17 +4,22 @@ const {
   enrollCourse,
   getMyCourses,
   getCourseProgress,
-  completeModule
+  completeModule,
+  getAllEnrollments
 } = require('../controllers/progressController');
 const { protect } = require('../middleware/authMiddleware');
 const { allowRoles } = require('../middleware/roleMiddleware');
 
-// Student routes
-router.use(protect, allowRoles('student'));
+// Apply protection to all routes
+router.use(protect);
 
-router.post('/:courseId/enroll', enrollCourse);
-router.get('/my-courses', getMyCourses);
-router.get('/:courseId', getCourseProgress);
-router.post('/:courseId/levels/:levelId/modules/:moduleId/complete', completeModule);
+// Student-only routes
+router.post('/:courseId/enroll', allowRoles('student'), enrollCourse);
+router.get('/my-courses', allowRoles('student'), getMyCourses);
+router.get('/:courseId', allowRoles('student'), getCourseProgress);
+router.post('/:courseId/levels/:levelId/modules/:moduleId/complete', allowRoles('student'), completeModule);
+
+// Admin-only routes
+router.get('/admin/enrollments', allowRoles('admin'), getAllEnrollments);
 
 module.exports = router;
