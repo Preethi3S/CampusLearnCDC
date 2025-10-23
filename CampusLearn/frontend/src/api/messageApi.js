@@ -1,7 +1,7 @@
 // src/api/messageApi.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/messages';
+const API_URL = 'http://localhost:3000/api/messages';
 
 // --- Get all messages ---
 const getAllMessages = async (token) => {
