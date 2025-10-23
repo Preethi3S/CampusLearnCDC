@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use the environment variable if set during build time, otherwise default to localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const USERS_ENDPOINT = `${API_URL}/users`;
 
 // Log the API URL for debugging (remove in production)

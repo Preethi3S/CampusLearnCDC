@@ -1,5 +1,5 @@
 import axios from 'axios';
-const API_URL = 'http://localhost:5000/api/quizzes';
+const API_URL = 'http://localhost:3000/api/quizzes';
 
 const quizApi = {
   getQuiz: async (courseId, levelId, moduleId, token) => {
