@@ -272,41 +272,13 @@ export default function AdminDashboard() {
                 {/* Navigation Links */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexGrow: 1 }}>
                     <button onClick={() => setActiveTab('courses')} style={getSidebarItemStyle(activeTab === 'courses')}>
-                        <span>📚 Course Management</span>
+                        <span>📚 Courses</span>
                     </button>
                     <button onClick={() => setActiveTab('students')} style={getSidebarItemStyle(activeTab === 'students')}>
                         <span>👥 Student Approvals</span>
-                        {pendingCount > 0 && (
-                            <span style={{
-                                backgroundColor: DANGER_COLOR,
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: 22, height: 22,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 11, fontWeight: 'bold',
-                            }}>
-                                {pendingCount > 9 ? '9+' : pendingCount}
-                            </span>
-                        )}
                     </button>
                     <button onClick={() => setActiveTab('enrollments')} style={getSidebarItemStyle(activeTab === 'enrollments')}>
-                        <span>📈 Enrollments</span>
-                        {enrollments.length > 0 && (
-                            <span style={{
-                                background: ACCENT_COLOR,
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: '20px',
-                                height: '20px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '12px',
-                                marginLeft: '8px'
-                            }}>
-                                {enrollments.length}
-                            </span>
-                        )}
+                        <span>📝 Enrollments</span>
                     </button>
                     <button onClick={() => setActiveTab('messages')} style={getSidebarItemStyle(activeTab === 'messages')}>
                         <span>💬 Messages</span>
@@ -400,12 +372,7 @@ export default function AdminDashboard() {
                                 onChange={e => setStudentSearchQuery(e.target.value)}
                                 style={{ padding: '10px 14px', borderRadius: 6, border: `1px solid ${SOFT_BORDER_COLOR}`, flex: 1, minWidth: 250 }}
                             />
-                            {!approvalsLoading && pendingCount > 0 && (
-                                <div style={{ color: DANGER_COLOR, fontWeight: 600 }}>
-                                    {pendingCount} {pendingCount === 1 ? 'student' : 'students'} pending approval.
-                                </div>
-                            )}
-                            {(studentsLoading || approvalsLoading) && <div style={{ color: MUTE_GRAY }}>Loading data...</div>}
+                            {studentsLoading && <div style={{ color: MUTE_GRAY }}>Loading data...</div>}
                         </div>
 
                         {/* Student Table */}
