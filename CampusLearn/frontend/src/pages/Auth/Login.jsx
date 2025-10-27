@@ -25,48 +25,55 @@ export default function Login() {
 
   // simple styles
   const card = {
-    maxWidth: 420,
-    margin: '40px auto',
-    padding: 28,
-    borderRadius: 10,
-    boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
-    background: '#fff',
-  };
-  const label = { display: 'block', marginBottom: 6, fontSize: 14, color: '#333' };
+      maxWidth: 820,
+      padding: 64,
+      borderRadius: 18,
+      boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+      background: '#fff',
+      margin: 0,
+    };
+  const label = { display: 'block', marginBottom: 8, fontSize: 16, color: '#333', fontWeight: 600 };
   const input = {
     width: '100%',
-    padding: '10px 12px',
-    borderRadius: 6,
+    padding: '14px 16px',
+    borderRadius: 10,
     border: '1px solid #ddd',
-    fontSize: 14,
+    fontSize: 16,
     color: '#111',
     background: '#fff',
     boxSizing: 'border-box',
   };
   const btn = {
     width: '100%',
-    padding: '12px 14px',
+    padding: '14px 18px',
     background: '#473E7A',
     color: '#fff',
     border: 'none',
-    borderRadius: 8,
+    borderRadius: 10,
     cursor: 'pointer',
-    fontWeight: '600',
+    fontWeight: 700,
+    fontSize: 16,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
+    gap: 10,
     transition: 'all 0.2s ease',
   };
-  const small = { fontSize: 13, color: '#666' };
+  const small = { fontSize: 14, color: '#666' };
 
   return (
-    <div style={{ padding: 20 }}>
+      <div style={{ 
+        padding: 20,
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
       <div style={card}>
-        <h2 style={{ marginTop: 0, marginBottom: 6, color: '#473E7A' }}>Welcome back</h2>
-        <p style={{ marginTop: 0, marginBottom: 18, ...small }}>Sign in to your account to continue.</p>
+        <h2 style={{ marginTop: 0, marginBottom: 6, color: '#473E7A', textAlign: 'center' }}>Welcome back</h2>
+        <p style={{ marginTop: 0, marginBottom: 18, ...small, textAlign: 'center' }}>Sign in to your account to continue.</p>
 
-        <form onSubmit={onSubmit}>
+  <form onSubmit={onSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* Email */}
           <div style={{ marginBottom: 12 }}>
             <label style={label}>Email</label>
@@ -74,7 +81,7 @@ export default function Login() {
               <FiMail
                 style={{
                   position: 'absolute',
-                  left: 12,
+                  left: 16,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   color: form.email ? '#473E7A' : '#999',
@@ -89,7 +96,7 @@ export default function Login() {
                 placeholder="you@company.com"
                 style={{
                   ...input,
-                  paddingLeft: '38px',
+                  paddingLeft: '48px',
                 }}
               />
             </div>
@@ -102,7 +109,7 @@ export default function Login() {
               <FiLock
                 style={{
                   position: 'absolute',
-                  left: 12,
+                  left: 16,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   color: form.password ? '#473E7A' : '#999',
@@ -117,33 +124,33 @@ export default function Login() {
                 placeholder="Your password"
                 style={{
                   ...input,
-                  paddingLeft: '38px',
-                  paddingRight: '38px', // <== FIX: adds space so the eye button doesn’t overlap
+                  paddingLeft: '48px',
+                  paddingRight: '48px', // space so the eye button doesn’t overlap
                 }}
                 autoComplete="current-password"
               />
-              {/* <button
+              <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setShowPassword((s) => !s)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 style={{
                   position: 'absolute',
-                  right: 10,
+                  right: 16,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
                   color: '#666',
-                  padding: 4,
+                  padding: 6,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-              </button> */}
+                {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+              </button>
             </div>
           </div>
 
