@@ -1,25 +1,66 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const studentProfileSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-  name: { type: String, required: true },
-  age: { type: Number, required: true },
-  department: { type: String },
-  address: { type: String, required: true },
-  dob: { type: Date, required: true },
-  phone: { type: String, required: true },
-  cgpa: { type: Number, required: true },
-  hasArrear: { type: Boolean, default: false },
-  arrearsHistory: { type: String, default: '' },
-  tenthPercentage: { type: Number, required: true },
-  twelfthPercentage: { type: Number, required: true },
-  cutoff: { type: Number, required: true },
-  certificates: { type: String, required: true },
-  resume: { type: String, required: true },
-  profilePhoto: { type: String, required: true },
-  codingLinks: { type: String, required: true },
-  projects: { type: String, default: 'No Projects' },
-  achievements: { type: String, default: 'No Achievements' },
-}, { timestamps: true });
+const studentProfileSchema = new mongoose.Schema(
+  {
+    studentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
 
-module.exports = mongoose.model('StudentProfile', studentProfileSchema);
+    // Personal Information
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String },
+    gender: { type: String, enum: ["Male", "Female", "Other"] },
+    dob: { type: Date },
+    address: { type: String },
+    profilePhoto: { type: String }, // Cloudinary URL
+
+    // Academic Information
+    collegeName: { type: String },
+    department: { type: String },
+    degree: { type: String },
+    yearOfStudy: { type: Number },
+    cgpa: { type: Number },
+    tenthPercentage: { type: Number },
+    twelfthPercentage: { type: Number },
+    backlogs: { type: Number },
+
+    // Skills and Projects
+    technicalSkills: [{ type: String }],
+    softSkills: [{ type: String }],
+    projects: [
+      {
+        title: String,
+        description: String,
+        techStack: [String],
+        link: String,
+      },
+    ],
+
+    // Certifications and Documents
+    certificates: [{ type: String }], // URLs
+    resume: { type: String }, // URL
+
+    // Placement info
+    internships: [
+      {
+        company: String,
+        role: String,
+        duration: String,
+        description: String,
+      },
+    ],
+    achievements: [{ type: String }],
+    linkedin: { type: String },
+    github: { type: String },
+    portfolio: { type: String },
+  },
+  { timestamps: true }
+);
+
+const StudentProfile = mongoose.model("StudentProfile", studentProfileSchema);
+
+module.exports = StudentProfile;
