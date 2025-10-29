@@ -13,7 +13,14 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error('Not authorized, token missing');
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // In dev, log the incoming auth header (partial) to help debug invalid token issues
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        console.debug('🔐 Incoming Authorization header (truncated):', authHeader ? authHeader.substring(0, 75) : authHeader);
+      } catch (e) { /* ignore logging errors */ }
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     const user = await User.findById(decoded.id).select('-password');
     
@@ -34,7 +41,15 @@ const protect = asyncHandler(async (req, res, next) => {
 
     req.user = user;
     next();
-  }catch (err) {
+  } catch (err) {
+    // Provide more detailed debug info in development to help track down JWT issues
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('⚠️ JWT verification failed:', { message: err.message, name: err.name });
+      // Avoid logging full token for security, but show a short prefix
+      try {
+        console.debug('🔐 Token prefix:', token ? String(token).slice(0, 20) + '...' : token);
+      } catch (e) {}
+    }
     res.status(401);
     throw new Error('Not authorized, token invalid');
   }

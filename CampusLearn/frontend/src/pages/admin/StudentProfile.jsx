@@ -9,7 +9,10 @@ const styles = {
         padding: '24px',
         maxWidth: '1200px',
         margin: '0 auto',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        backgroundColor: '#FFFFFF',
+        minHeight: '100vh',
+        color: '#111827'
     },
     backButton: {
         display: 'inline-flex',
@@ -345,7 +348,7 @@ const StudentProfile = () => {
             <div style={styles.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h2 style={{ ...styles.sectionTitle, margin: 0 }}>Enrollments</h2>
-                    <span style={{ fontSize: '14px', color: '#6B7280' }}>{enrollments.length} courses</span>
+                    <span style={{ fontSize: '14px', color: '#050609ff' }}>{enrollments.length} courses</span>
                 </div>
 
                 {enrollments.length === 0 ? (
@@ -368,7 +371,7 @@ const StudentProfile = () => {
                                     <tr key={enrollment._id}>
                                         <td style={styles.td}>
                                             <div style={{ fontWeight: '500' }}>{enrollment.course?.title || 'Unknown Course'}</div>
-                                            <div style={{ fontSize: '14px', color: '#6B7280' }}>
+                                            <div style={{ fontSize: '14px', color: '#000000ff' }}>
                                                 {/* {enrollment.course?.code || ''} */}
                                             </div>
                                         </td>

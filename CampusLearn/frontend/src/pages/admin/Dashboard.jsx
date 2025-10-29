@@ -87,6 +87,7 @@ export default function AdminDashboard() {
     const [studentsError, setStudentsError] = useState(null);
     const [studentSearchQuery, setStudentSearchQuery] = useState('');
     const [deletingStudentId, setDeletingStudentId] = useState(null);
+    const [exportingStudentId, setExportingStudentId] = useState(null);
     const [pendingCount, setPendingCount] = useState(0);
     const [enrollments, setEnrollments] = useState([]);
     const [approvalsLoading, setApprovalsLoading] = useState(false);
@@ -373,6 +374,27 @@ export default function AdminDashboard() {
                                 style={{ padding: '10px 14px', borderRadius: 6, border: `1px solid ${SOFT_BORDER_COLOR}`, flex: 1, minWidth: 250 }}
                             />
                             {studentsLoading && <div style={{ color: MUTE_GRAY }}>Loading data...</div>}
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const blob = await progressApi.exportEnrollments(null, auth.token);
+                                        const url = window.URL.createObjectURL(new Blob([blob]));
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `enrollments_${Date.now()}.csv`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        a.remove();
+                                        window.URL.revokeObjectURL(url);
+                                    } catch (err) {
+                                        console.error('Export failed', err);
+                                        alert('Failed to export enrollments. See console for details.');
+                                    }
+                                }}
+                                style={{ padding: '8px 12px', borderRadius: 6, border: `1px solid ${PRIMARY_COLOR}`, background: 'transparent', color: PRIMARY_COLOR, cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Export All CSV
+                            </button>
                         </div>
 
                         {/* Student Table */}
@@ -487,6 +509,43 @@ export default function AdminDashboard() {
                                                                     {isCurrentStudentDeleting ? 'Deleting...' : 'Delete'}
                                                                 </button>
                                                             )}
+
+                                                            {/* Export per-student CSV */}
+                                                            <div style={{ marginTop: 8 }}>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            setExportingStudentId(student._id);
+                                                                            const blob = await progressApi.exportEnrollments(student._id, auth.token);
+                                                                            const url = window.URL.createObjectURL(new Blob([blob]));
+                                                                            const a = document.createElement('a');
+                                                                            a.href = url;
+                                                                            a.download = `enrollments_${student._id}_${Date.now()}.csv`;
+                                                                            document.body.appendChild(a);
+                                                                            a.click();
+                                                                            a.remove();
+                                                                            window.URL.revokeObjectURL(url);
+                                                                        } catch (err) {
+                                                                            console.error('Student export failed', err);
+                                                                            alert('Failed to export student enrollments.');
+                                                                        } finally {
+                                                                            setExportingStudentId(null);
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        ...buttonBaseStyle,
+                                                                        padding: '6px 10px',
+                                                                        fontSize: 12,
+                                                                        background: 'transparent',
+                                                                        color: PRIMARY_COLOR,
+                                                                        border: `1px solid ${PRIMARY_COLOR}`,
+                                                                        margin: 0,
+                                                                    }}
+                                                                    disabled={exportingStudentId === student._id}
+                                                                >
+                                                                    {exportingStudentId === student._id ? 'Exporting...' : 'Export CSV'}
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
