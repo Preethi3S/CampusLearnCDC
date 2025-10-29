@@ -22,4 +22,11 @@ export default {
     const res = await instance.post(`/progress/${courseId}/levels/${levelId}/modules/${moduleId}/complete`, body, withToken(token));
     return res.data;
   }
+  ,
+  exportEnrollments: async (studentId, token) => {
+    // studentId optional; if provided, append as query param
+    const url = studentId ? `/progress/admin/enrollments/export?studentId=${studentId}` : '/progress/admin/enrollments/export';
+    const res = await instance.get(url, { ...withToken(token), responseType: 'blob' });
+    return res.data;
+  }
 };
