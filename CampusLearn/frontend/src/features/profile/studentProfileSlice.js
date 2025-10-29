@@ -1,26 +1,63 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import studentProfileApi from '../../api/studentProfileApi';
+import studentProfileService from '../../api/studentProfileApi';
 
-export const fetchProfile = createAsyncThunk('studentProfile/fetch', async (token) => {
-  return await studentProfileApi.getProfile(token);
-});
-
-export const saveProfile = createAsyncThunk('studentProfile/save', async ({ formData, token }) => {
-  return await studentProfileApi.saveProfile(formData, token);
-});
-
-const slice = createSlice({
-  name: 'studentProfile',
-  initialState: { profile: null, loading: false, error: null },
-  extraReducers: builder => {
-    builder
-      .addCase(fetchProfile.pending, state => { state.loading = true; })
-      .addCase(fetchProfile.fulfilled, (state, action) => { state.loading = false; state.profile = action.payload; })
-      .addCase(fetchProfile.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
-      .addCase(saveProfile.pending, state => { state.loading = true; })
-      .addCase(saveProfile.fulfilled, (state, action) => { state.loading = false; state.profile = action.payload; })
-      .addCase(saveProfile.rejected, (state, action) => { state.loading = false; state.error = action.error.message; });
+// Fetch Student Profile
+export const fetchProfile = createAsyncThunk(
+  'studentProfile/fetchProfile',
+  async (token, { rejectWithValue }) => {
+    try {
+      return await studentProfileService.getProfile(token);
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to load profile');
+    }
   }
+);
+
+// Save or Update Student Profile
+export const saveProfile = createAsyncThunk(
+  'studentProfile/saveProfile',
+  async ({ formData, token }, { rejectWithValue }) => {
+    try {
+      return await studentProfileService.saveProfile(formData, token);
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to save profile');
+    }
+  }
+);
+
+const studentProfileSlice = createSlice({
+  name: 'studentProfile',
+  initialState: {
+    profile: null,
+    status: 'idle',
+    error: null,
+  },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchProfile.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchProfile.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.profile = action.payload;
+      })
+      .addCase(fetchProfile.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(saveProfile.pending, (state) => {
+        state.status = 'saving';
+      })
+      .addCase(saveProfile.fulfilled, (state, action) => {
+        state.status = 'saved';
+        state.profile = action.payload;
+      })
+      .addCase(saveProfile.rejected, (state, action) => {
+        state.status = 'error';
+        state.error = action.payload;
+      });
+  },
 });
 
-export default slice.reducer;
+export default studentProfileSlice.reducer;

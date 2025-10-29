@@ -9,12 +9,12 @@ const quizRoutes = require('./routes/quizRoutes');
 const userRoutes = require('./routes/userRoutes');
 const MessagesRoutes = require('./routes/messageRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
-
+const studentProfileRoutes = require('./routes/studentProfileRoutes');
 
 const app = express();
+
 app.options('*', cors());
 
-// middlewares
 app.use(express.json());
 app.use(cors({
   origin: 'http://localhost:5173',
@@ -24,20 +24,20 @@ app.use(cors({
 
 app.use(morgan('dev'));
 
-// routes
+// ROUTES
 app.use('/api/auth', authRoutes);
-
-// Basic health
-app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date() }));
-
 app.use('/api/courses', courseRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', MessagesRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
+app.use("/api/studentProfile", studentProfileRoutes);
 
-// error handler (simple)
+// Health check
+app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date() }));
+
+// Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   const status = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;

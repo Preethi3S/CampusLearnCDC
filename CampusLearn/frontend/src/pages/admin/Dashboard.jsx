@@ -91,6 +91,7 @@ export default function AdminDashboard() {
     const [pendingCount, setPendingCount] = useState(0);
     const [enrollments, setEnrollments] = useState([]);
     const [approvalsLoading, setApprovalsLoading] = useState(false);
+    const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
 
     // --- Data Loaders ---
     const [expandedCourses, setExpandedCourses] = useState({});

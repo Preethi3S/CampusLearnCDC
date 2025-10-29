@@ -253,6 +253,25 @@ const getStudentEnrollments = async (token, studentId) => {
   }
 };
 
+/**
+ * Get Student Profile (Admin view)
+ */
+const getStudentProfile = async (token, studentId) => {
+  try {
+    const response = await axios.get(`${API_URL}/studentProfile/${studentId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student profile:', error);
+    handleApiError(error, 'Failed to fetch student profile');
+    throw error;
+  }
+};
+
+
 export default {
   getUsers,
   deleteUser,
@@ -260,5 +279,6 @@ export default {
   approveUser,
   rejectUser,
   getUserById,
-  getStudentEnrollments
+  getStudentEnrollments,
+  getStudentProfile
 };

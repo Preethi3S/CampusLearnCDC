@@ -14,6 +14,7 @@ import ManageQuiz from './pages/admin/ManageQuiz';
 import AdminMessageBoard from './pages/admin/AdminMessageBoard';
 import StudentMessageBoard from './pages/Student/StudentMessageBoard';
 import StudentProfile from './pages/admin/StudentProfile';
+import StudentProfileForm from './components/studentProfileForm';
 
 export default function App() {
   return (
@@ -45,7 +46,10 @@ export default function App() {
         />
         <Route path="/admin/messages" element={<AdminMessageBoard />} />
         <Route path="/admin/students/:studentId" element={<StudentProfile />} />
+
       </Route>
+
+      <Route path="/student-profile" element={<StudentProfileForm />} />
 
       <Route path="*" element={<div>Not Found</div>} />
     </Routes>
