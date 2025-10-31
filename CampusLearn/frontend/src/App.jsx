@@ -15,6 +15,7 @@ import AdminMessageBoard from './pages/admin/AdminMessageBoard';
 import StudentMessageBoard from './pages/Student/StudentMessageBoard';
 import StudentProfile from './pages/admin/StudentProfile';
 import StudentProfileForm from './components/studentProfileForm';
+import RegisterProfile from './pages/Auth/RegisterProfile';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+  <Route path="/register/profile" element={<RegisterProfile />} />
 
       {/* Student-only routes */}
       <Route element={<ProtectedRoute allowedRoles={['student']} />}>

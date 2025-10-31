@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { FiEye, FiEyeOff, FiLock, FiUser, FiMail } from 'react-icons/fi';
-import studentProfileService from '../../api/studentProfileApi';
 import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../../features/auth/authSlice';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 
 export default function Register() {
   const dispatch = useDispatch();
@@ -32,8 +31,8 @@ export default function Register() {
     github: '',
     portfolio: ''
   });
-  const [showProfileFields, setShowProfileFields] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   if (auth.user) {
     return <Navigate to={auth.user.role === 'admin' ? "/admin/dashboard" : "/student/dashboard"} replace />;
@@ -47,36 +46,23 @@ export default function Register() {
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      const resultAction = await dispatch(register(form));
-      if (register.fulfilled.match(resultAction)) {
-        setRegistrationSuccess(true);
-        setRegistrationMessage(resultAction.payload.message || 'Registration successful!');
-        // If user provided profile fields, save profile immediately using returned token
-        const token = resultAction.payload.token;
-        if (token && showProfileFields) {
-          try {
-            const data = new FormData();
-            // only include profile-related keys
-            [
-              'phone','gender','dob','address','collegeName','department','degree','yearOfStudy',
-              'cgpa','tenthPercentage','twelfthPercentage','backlogs','technicalSkills','softSkills',
-              'linkedin','github','portfolio','name','email'
-            ].forEach((k) => {
-              if (form[k] !== undefined && form[k] !== null && form[k] !== '') data.append(k, form[k]);
-            });
+      // use unwrap to reliably get the fulfilled payload or throw on rejection
+      const payload = await dispatch(register(form)).unwrap();
+      setRegistrationSuccess(true);
+      setRegistrationMessage(payload.message || 'Registration successful!');
 
-            await studentProfileService.saveProfile(data, token);
-          } catch (err) {
-            console.error('Failed to save profile on registration:', err);
-            setRegistrationMessage((m) => m + ' (Profile save failed — you can edit your profile later)');
-          }
-        }
-        // Clear form on successful registration
-        setForm({ name: '', email: '', password: '', role: 'student' });
+      const token = payload.token;
+      const serverData = payload;
+      if (form.role === 'student') {
+        navigate('/register/profile', { state: { token, fromRegister: true, initial: { name: form.name, email: form.email }, serverData } });
+        return;
       }
+
+      // Clear form on successful registration for non-students
+      setForm({ name: '', email: '', password: '', role: 'student' });
     } catch (err) {
       console.error('Registration error:', err);
-      setRegistrationMessage(err.message || 'Registration failed. Please try again.');
+      setRegistrationMessage(err || err.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -229,40 +215,7 @@ export default function Register() {
               </select>
             </div>
 
-            {/* Toggle optional profile fields */}
-            {form.role === 'student' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <input id="showProfileFields" type="checkbox" checked={showProfileFields} onChange={() => setShowProfileFields(s => !s)} />
-                <label htmlFor="showProfileFields" style={{ fontSize: 13, color: '#666' }}>Add student profile details now (optional)</label>
-              </div>
-            )}
-
-            {showProfileFields && (
-              <div style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#473E7A' }}>Student Profile (optional)</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <input name="phone" placeholder="Phone" value={form.phone} onChange={onChange} style={input} />
-                  <input name="gender" placeholder="Gender" value={form.gender} onChange={onChange} style={input} />
-                  <input name="dob" type="date" placeholder="Date of Birth" value={form.dob} onChange={onChange} style={input} />
-                  <input name="address" placeholder="Address" value={form.address} onChange={onChange} style={input} />
-                  <input name="collegeName" placeholder="College Name" value={form.collegeName} onChange={onChange} style={input} />
-                  <input name="department" placeholder="Department" value={form.department} onChange={onChange} style={input} />
-                  <input name="degree" placeholder="Degree" value={form.degree} onChange={onChange} style={input} />
-                  <input name="yearOfStudy" type="number" placeholder="Year of Study" value={form.yearOfStudy} onChange={onChange} style={input} />
-                  <input name="cgpa" type="number" placeholder="CGPA" value={form.cgpa} onChange={onChange} style={input} />
-                  <input name="tenthPercentage" type="number" placeholder="10th %" value={form.tenthPercentage} onChange={onChange} style={input} />
-                  <input name="twelfthPercentage" type="number" placeholder="12th %" value={form.twelfthPercentage} onChange={onChange} style={input} />
-                  <input name="backlogs" type="number" placeholder="Backlogs" value={form.backlogs} onChange={onChange} style={input} />
-                </div>
-                <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-                  <textarea name="technicalSkills" placeholder="Technical Skills (comma separated)" value={form.technicalSkills} onChange={onChange} style={{ ...input, height: 60 }} />
-                  <textarea name="softSkills" placeholder="Soft Skills (comma separated)" value={form.softSkills} onChange={onChange} style={{ ...input, height: 60 }} />
-                  <input name="linkedin" placeholder="LinkedIn URL" value={form.linkedin} onChange={onChange} style={input} />
-                  <input name="github" placeholder="GitHub URL" value={form.github} onChange={onChange} style={input} />
-                  <input name="portfolio" placeholder="Portfolio URL" value={form.portfolio} onChange={onChange} style={input} />
-                </div>
-              </div>
-            )}
+            {/* student profile fields are handled after registration on a dedicated page */}
 
             {/* Submit */}
             <button
