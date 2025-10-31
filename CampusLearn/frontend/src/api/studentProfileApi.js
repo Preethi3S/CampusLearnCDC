@@ -20,10 +20,10 @@ const getProfile = async (token) => {
 
 // Create or update student's own profile
 const saveProfile = async (formData, token) => {
+  // Let axios set the Content-Type (including boundary) for FormData
   const res = await axios.post(API_URL, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "multipart/form-data",
     },
   });
   return res.data;
@@ -31,10 +31,10 @@ const saveProfile = async (formData, token) => {
 
 // Explicitly patch (student updating own profile)
 const updateProfile = async (formData, token) => {
+  // Let axios set Content-Type for FormData
   const res = await axios.patch(API_URL, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "multipart/form-data",
     },
   });
   return res.data;
@@ -59,7 +59,6 @@ const updateProfileById = async (id, formData, token) => {
   const res = await axios.patch(`${API_URL}/${id}`, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "multipart/form-data",
     },
   });
   return res.data;

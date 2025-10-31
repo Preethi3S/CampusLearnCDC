@@ -2,13 +2,37 @@ import React, { useState } from 'react';
 import { FiEye, FiEyeOff, FiLock, FiUser, FiMail } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../../features/auth/authSlice';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 
 export default function Register() {
   const dispatch = useDispatch();
   const auth = useSelector((s) => s.auth);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'student' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'student',
+    // optional profile fields
+    phone: '',
+    gender: '',
+    dob: '',
+    address: '',
+    collegeName: '',
+    department: '',
+    degree: '',
+    yearOfStudy: '',
+    cgpa: '',
+    tenthPercentage: '',
+    twelfthPercentage: '',
+    backlogs: '',
+    technicalSkills: '',
+    softSkills: '',
+    linkedin: '',
+    github: '',
+    portfolio: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   if (auth.user) {
     return <Navigate to={auth.user.role === 'admin' ? "/admin/dashboard" : "/student/dashboard"} replace />;
@@ -22,16 +46,23 @@ export default function Register() {
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      const resultAction = await dispatch(register(form));
-      if (register.fulfilled.match(resultAction)) {
-        setRegistrationSuccess(true);
-        setRegistrationMessage(resultAction.payload.message || 'Registration successful!');
-        // Clear form on successful registration
-        setForm({ name: '', email: '', password: '', role: 'student' });
+      // use unwrap to reliably get the fulfilled payload or throw on rejection
+      const payload = await dispatch(register(form)).unwrap();
+      setRegistrationSuccess(true);
+      setRegistrationMessage(payload.message || 'Registration successful!');
+
+      const token = payload.token;
+      const serverData = payload;
+      if (form.role === 'student') {
+        navigate('/register/profile', { state: { token, fromRegister: true, initial: { name: form.name, email: form.email }, serverData } });
+        return;
       }
+
+      // Clear form on successful registration for non-students
+      setForm({ name: '', email: '', password: '', role: 'student' });
     } catch (err) {
       console.error('Registration error:', err);
-      setRegistrationMessage(err.message || 'Registration failed. Please try again.');
+      setRegistrationMessage(err || err.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -183,6 +214,8 @@ export default function Register() {
                 <option value="admin">Admin</option>
               </select>
             </div>
+
+            {/* student profile fields are handled after registration on a dedicated page */}
 
             {/* Submit */}
             <button

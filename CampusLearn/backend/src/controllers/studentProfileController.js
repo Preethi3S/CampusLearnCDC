@@ -39,6 +39,26 @@ exports.createOrUpdateProfile = async (req, res) => {
     }
 
     // Create or update (upsert)
+    // Normalize some fields: skills as arrays and numeric fields
+    if (profileData.technicalSkills && typeof profileData.technicalSkills === 'string') {
+      profileData.technicalSkills = profileData.technicalSkills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    if (profileData.softSkills && typeof profileData.softSkills === 'string') {
+      profileData.softSkills = profileData.softSkills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    ['yearOfStudy', 'cgpa', 'tenthPercentage', 'twelfthPercentage', 'backlogs'].forEach((key) => {
+      if (profileData[key] !== undefined) {
+        const num = Number(profileData[key]);
+        if (!Number.isNaN(num)) profileData[key] = num;
+      }
+    });
+
     const profile = await StudentProfile.findOneAndUpdate(
       { studentId },
       { $set: profileData },
@@ -102,6 +122,25 @@ exports.updateStudentProfile = async (req, res) => {
       }
     }
 
+    if (profileData.technicalSkills && typeof profileData.technicalSkills === 'string') {
+      profileData.technicalSkills = profileData.technicalSkills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    if (profileData.softSkills && typeof profileData.softSkills === 'string') {
+      profileData.softSkills = profileData.softSkills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    ['yearOfStudy', 'cgpa', 'tenthPercentage', 'twelfthPercentage', 'backlogs'].forEach((key) => {
+      if (profileData[key] !== undefined) {
+        const num = Number(profileData[key]);
+        if (!Number.isNaN(num)) profileData[key] = num;
+      }
+    });
+
     const updatedProfile = await StudentProfile.findOneAndUpdate(
       { studentId },
       { $set: profileData },
@@ -130,6 +169,69 @@ exports.getStudentProfileById = async (req, res) => {
   } catch (err) {
     console.error("Error fetching profile by ID:", err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+// Admin: update or create a profile for a specific student by ID
+exports.updateProfileById = async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    const profileData = req.body || {};
+
+    // File uploads
+    if (req.files) {
+      if (req.files.certificates) {
+        const uploadRes = await cloudinary.uploader.upload(
+          req.files.certificates[0].path
+        );
+        profileData.certificates = [uploadRes.secure_url];
+      }
+
+      if (req.files.resume) {
+        const uploadRes = await cloudinary.uploader.upload(
+          req.files.resume[0].path
+        );
+        profileData.resume = uploadRes.secure_url;
+      }
+
+      if (req.files.profilePhoto) {
+        const uploadRes = await cloudinary.uploader.upload(
+          req.files.profilePhoto[0].path
+        );
+        profileData.profilePhoto = uploadRes.secure_url;
+      }
+    }
+
+    // Normalize fields like in createOrUpdateProfile
+    if (profileData.technicalSkills && typeof profileData.technicalSkills === 'string') {
+      profileData.technicalSkills = profileData.technicalSkills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    if (profileData.softSkills && typeof profileData.softSkills === 'string') {
+      profileData.softSkills = profileData.softSkills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    ['yearOfStudy', 'cgpa', 'tenthPercentage', 'twelfthPercentage', 'backlogs'].forEach((key) => {
+      if (profileData[key] !== undefined) {
+        const num = Number(profileData[key]);
+        if (!Number.isNaN(num)) profileData[key] = num;
+      }
+    });
+
+    const profile = await StudentProfile.findOneAndUpdate(
+      { studentId },
+      { $set: profileData },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json(profile);
+  } catch (err) {
+    console.error('Error updating profile by ID:', err);
+    res.status(500).json({ message: 'Failed to update profile', error: err.message });
   }
 };
 

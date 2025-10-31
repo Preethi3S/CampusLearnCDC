@@ -5,6 +5,7 @@ const {
   approveUser, 
   rejectUser, 
   deleteUser,
+  createUser,
   getStudentEnrollments
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
@@ -27,5 +28,8 @@ router.delete('/:id', deleteUser);
 
 // GET /api/users/:studentId/enrollments
 router.get('/:studentId/enrollments', getStudentEnrollments);
+
+// POST /api/users - admin only: create a user
+router.post('/', createUser);
 
 module.exports = router;

@@ -157,6 +157,40 @@ const getStudentEnrollments = async (req, res) => {
     }
 };
 
+// POST /api/users - admin only: create a new user (admin can create approved students)
+const createUser = asyncHandler(async (req, res) => {
+  const { name, email, password, role = 'student', status } = req.body;
+
+  if (!name || !email || !password) {
+    res.status(400);
+    throw new Error('Please provide name, email and password');
+  }
+
+  const existing = await User.findOne({ email });
+  if (existing) {
+    res.status(400);
+    throw new Error('Email already registered');
+  }
+
+  // If admin creates a student, mark as approved by default unless explicitly set
+  const finalStatus = role === 'student' ? (status || 'approved') : (status || 'approved');
+
+  const user = await User.create({ name, email, password, role, status: finalStatus });
+  if (!user) {
+    res.status(500);
+    throw new Error('Failed to create user');
+  }
+
+  res.status(201).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    message: 'User created successfully'
+  });
+});
+
 // Helper function to calculate course progress percentage
 function calculateCourseProgress(levels) {
     if (!levels || levels.length === 0) return 0;
@@ -174,9 +208,10 @@ function calculateCourseProgress(levels) {
 
 // Export all controller functions
 module.exports = { 
-    listUsers, 
-    approveUser, 
-    rejectUser, 
-    deleteUser,
-    getStudentEnrollments
+  listUsers, 
+  approveUser, 
+  rejectUser, 
+  deleteUser,
+  getStudentEnrollments,
+  createUser
 };
