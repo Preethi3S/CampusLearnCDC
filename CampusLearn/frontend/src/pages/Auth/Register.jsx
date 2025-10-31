@@ -7,12 +7,13 @@ import { Navigate, Link, useNavigate } from 'react-router-dom';
 export default function Register() {
   const dispatch = useDispatch();
   const auth = useSelector((s) => s.auth);
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: '',
     email: '',
     password: '',
     role: 'student',
-    // optional profile fields
     phone: '',
     gender: '',
     dob: '',
@@ -29,56 +30,66 @@ export default function Register() {
     softSkills: '',
     linkedin: '',
     github: '',
-    portfolio: ''
+    portfolio: '',
   });
+
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registrationMessage, setRegistrationMessage] = useState('');
 
   if (auth.user) {
-    return <Navigate to={auth.user.role === 'admin' ? "/admin/dashboard" : "/student/dashboard"} replace />;
+    return (
+      <Navigate
+        to={auth.user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard'}
+        replace
+      />
+    );
   }
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [registrationMessage, setRegistrationMessage] = useState('');
 
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
       const resultAction = await dispatch(register(form));
+
       if (register.fulfilled.match(resultAction)) {
         setRegistrationSuccess(true);
         setRegistrationMessage(resultAction.payload.message || 'Registration successful!');
-        // If user provided profile fields, save profile immediately using returned token
-        const token = resultAction.payload.token;
-        if (token) {
-          try {
-            const data = new FormData();
-            // include all profile-related keys as they are now required
-            [
-              'phone','gender','dob','address','collegeName','department','degree','yearOfStudy',
-              'cgpa','tenthPercentage','twelfthPercentage','backlogs','technicalSkills','softSkills',
-              'linkedin','github','portfolio','name','email'
-            ].forEach((k) => {
-              data.append(k, form[k]);
-            });
 
-      const token = payload.token;
-      const serverData = payload;
-      if (form.role === 'student') {
-        navigate('/register/profile', { state: { token, fromRegister: true, initial: { name: form.name, email: form.email }, serverData } });
-        return;
+        const payload = resultAction.payload;
+        const token = payload.token;
+        const serverData = payload;
+
+        if (form.role === 'student') {
+          navigate('/register/profile', {
+            state: {
+              token,
+              fromRegister: true,
+              initial: { name: form.name, email: form.email },
+              serverData,
+            },
+          });
+          return;
+        }
+
+        // clear form if not student
+        setForm({
+          name: '',
+          email: '',
+          password: '',
+          role: 'student',
+        });
+      } else {
+        setRegistrationMessage(resultAction.error?.message || 'Registration failed.');
       }
-
-      // Clear form on successful registration for non-students
-      setForm({ name: '', email: '', password: '', role: 'student' });
     } catch (err) {
       console.error('Registration error:', err);
-      setRegistrationMessage(err || err.message || 'Registration failed. Please try again.');
+      setRegistrationMessage(err?.message || 'Registration failed. Please try again.');
     }
   };
 
+  // --- UI Styles ---
   const card = {
     maxWidth: 420,
     margin: '40px auto',
@@ -121,14 +132,17 @@ export default function Register() {
         <h2 style={{ marginTop: 0, marginBottom: 6, color: '#473E7A' }}>
           {registrationSuccess ? 'Registration Submitted' : 'Create account'}
         </h2>
+
         {registrationSuccess ? (
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#e8f5e9',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            borderLeft: '4px solid #4caf50',
-          }}>
+          <div
+            style={{
+              padding: '16px',
+              backgroundColor: '#e8f5e9',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              borderLeft: '4px solid #4caf50',
+            }}
+          >
             <p style={{ margin: 0, color: '#2e7d32', fontWeight: 500 }}>
               {registrationMessage}
             </p>
@@ -209,35 +223,39 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Role is always student */}
+            {/* Role */}
             <input type="hidden" name="role" value="student" />
 
-            <div style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#473E7A' }}>Student Profile Details</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <input name="phone" placeholder="Phone" value={form.phone} onChange={onChange} style={input} required />
-                  <input name="gender" placeholder="Gender" value={form.gender} onChange={onChange} style={input} required />
-                  <input name="dob" type="date" placeholder="Date of Birth" value={form.dob} onChange={onChange} style={input} required />
-                  <input name="address" placeholder="Address" value={form.address} onChange={onChange} style={input} required />
-                  <input name="collegeName" placeholder="College Name" value={form.collegeName} onChange={onChange} style={input} required />
-                  <input name="department" placeholder="Department" value={form.department} onChange={onChange} style={input} required />
-                  <input name="degree" placeholder="Degree" value={form.degree} onChange={onChange} style={input} required />
-                  <input name="yearOfStudy" type="number" placeholder="Year of Study" value={form.yearOfStudy} onChange={onChange} style={input} required />
-                  <input name="cgpa" type="number" placeholder="CGPA" value={form.cgpa} onChange={onChange} style={input} required />
-                  <input name="tenthPercentage" type="number" placeholder="10th %" value={form.tenthPercentage} onChange={onChange} style={input} required />
-                  <input name="twelfthPercentage" type="number" placeholder="12th %" value={form.twelfthPercentage} onChange={onChange} style={input} required />
-                  <input name="backlogs" type="number" placeholder="Backlogs" value={form.backlogs} onChange={onChange} style={input} required />
-                </div>
-                <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-                  <textarea name="technicalSkills" placeholder="Technical Skills (comma separated)" value={form.technicalSkills} onChange={onChange} style={{ ...input, height: 60 }} required />
-                  <textarea name="softSkills" placeholder="Soft Skills (comma separated)" value={form.softSkills} onChange={onChange} style={{ ...input, height: 60 }} required />
-                  <input name="linkedin" placeholder="LinkedIn URL" value={form.linkedin} onChange={onChange} style={input} required />
-                  <input name="github" placeholder="GitHub URL" value={form.github} onChange={onChange} style={input} required />
-                  <input name="portfolio" placeholder="Portfolio URL" value={form.portfolio} onChange={onChange} style={input} required />
-                </div>
+            {/* Student Profile Section */}
+           {/*  <div style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#473E7A' }}>
+                Student Profile Details
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <input name="phone" placeholder="Phone" value={form.phone} onChange={onChange} style={input} required />
+                <input name="gender" placeholder="Gender" value={form.gender} onChange={onChange} style={input} required />
+                <input name="dob" type="date" placeholder="Date of Birth" value={form.dob} onChange={onChange} style={input} required />
+                <input name="address" placeholder="Address" value={form.address} onChange={onChange} style={input} required />
+                <input name="collegeName" placeholder="College Name" value={form.collegeName} onChange={onChange} style={input} required />
+                <input name="department" placeholder="Department" value={form.department} onChange={onChange} style={input} required />
+                <input name="degree" placeholder="Degree" value={form.degree} onChange={onChange} style={input} required />
+                <input name="yearOfStudy" type="number" placeholder="Year of Study" value={form.yearOfStudy} onChange={onChange} style={input} required />
+                <input name="cgpa" type="number" placeholder="CGPA" value={form.cgpa} onChange={onChange} style={input} required />
+                <input name="tenthPercentage" type="number" placeholder="10th %" value={form.tenthPercentage} onChange={onChange} style={input} required />
+                <input name="twelfthPercentage" type="number" placeholder="12th %" value={form.twelfthPercentage} onChange={onChange} style={input} required />
+                <input name="backlogs" type="number" placeholder="Backlogs" value={form.backlogs} onChange={onChange} style={input} required />
               </div>
 
-            {/* Submit */}
+              <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                <textarea name="technicalSkills" placeholder="Technical Skills (comma separated)" value={form.technicalSkills} onChange={onChange} style={{ ...input, height: 60 }} required />
+                <textarea name="softSkills" placeholder="Soft Skills (comma separated)" value={form.softSkills} onChange={onChange} style={{ ...input, height: 60 }} required />
+                <input name="linkedin" placeholder="LinkedIn URL" value={form.linkedin} onChange={onChange} style={input} required />
+                <input name="github" placeholder="GitHub URL" value={form.github} onChange={onChange} style={input} required />
+                <input name="portfolio" placeholder="Portfolio URL" value={form.portfolio} onChange={onChange} style={input} required />
+              </div>
+            </div> */}
+
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={auth.loading}
@@ -265,15 +283,17 @@ export default function Register() {
             </p>
 
             {auth.error && (
-              <div style={{
-                marginTop: 8,
-                padding: 10,
-                background: '#FFEFEF',
-                border: '1px solid #F5C2C2',
-                color: '#B00020',
-                borderRadius: 6,
-                fontSize: 13,
-              }}>
+              <div
+                style={{
+                  marginTop: 8,
+                  padding: 10,
+                  background: '#FFEFEF',
+                  border: '1px solid #F5C2C2',
+                  color: '#B00020',
+                  borderRadius: 6,
+                  fontSize: 13,
+                }}
+              >
                 {auth.error}
               </div>
             )}
