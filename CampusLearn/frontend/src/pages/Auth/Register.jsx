@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { FiEye, FiEyeOff, FiLock, FiUser, FiMail } from 'react-icons/fi';
-import studentProfileService from '../../api/studentProfileApi';
 import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../../features/auth/authSlice';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 
 export default function Register() {
   const dispatch = useDispatch();
@@ -33,6 +32,7 @@ export default function Register() {
     portfolio: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   if (auth.user) {
     return <Navigate to={auth.user.role === 'admin' ? "/admin/dashboard" : "/student/dashboard"} replace />;
@@ -64,18 +64,18 @@ export default function Register() {
               data.append(k, form[k]);
             });
 
-            await studentProfileService.saveProfile(data, token);
-          } catch (err) {
-            console.error('Failed to save profile on registration:', err);
-            setRegistrationMessage((m) => m + ' (Profile save failed — you can edit your profile later)');
-          }
-        }
-        // Clear form on successful registration
-        setForm({ name: '', email: '', password: '', role: 'student' });
+      const token = payload.token;
+      const serverData = payload;
+      if (form.role === 'student') {
+        navigate('/register/profile', { state: { token, fromRegister: true, initial: { name: form.name, email: form.email }, serverData } });
+        return;
       }
+
+      // Clear form on successful registration for non-students
+      setForm({ name: '', email: '', password: '', role: 'student' });
     } catch (err) {
       console.error('Registration error:', err);
-      setRegistrationMessage(err.message || 'Registration failed. Please try again.');
+      setRegistrationMessage(err || err.message || 'Registration failed. Please try again.');
     }
   };
 

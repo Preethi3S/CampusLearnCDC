@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../../features/auth/authSlice';
 import { Navigate, Link } from 'react-router-dom';
 import { FiEye, FiEyeOff, FiLock, FiMail } from 'react-icons/fi';
+import studentProfileService from '../../api/studentProfileApi';
+import { toast } from 'react-toastify';
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -20,7 +22,30 @@ export default function Login() {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    dispatch(login(form));
+    (async () => {
+      const resultAction = await dispatch(login(form));
+      if (login.fulfilled.match(resultAction)) {
+        // apply any pending profile saved earlier during registration
+        const payload = resultAction.payload || {};
+        const token = payload.token;
+        const email = payload.email || form.email;
+        const key = `pendingProfile_${email}`;
+        const pending = localStorage.getItem(key);
+        if (pending && token) {
+          try {
+            const obj = JSON.parse(pending);
+            const fd = new FormData();
+            Object.entries(obj).forEach(([k, v]) => fd.append(k, v));
+            await studentProfileService.saveProfile(fd, token);
+            localStorage.removeItem(key);
+            toast.success('Pending profile applied to your account');
+          } catch (err) {
+            console.error('Failed to apply pending profile:', err);
+            toast.error('Failed to apply pending profile');
+          }
+        }
+      }
+    })();
   };
 
   // simple styles
