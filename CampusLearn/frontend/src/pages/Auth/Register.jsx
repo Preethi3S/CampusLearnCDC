@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiEye, FiEyeOff, FiLock, FiUser, FiMail } from 'react-icons/fi';
+import studentProfileService from '../../api/studentProfileApi';
 import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../../features/auth/authSlice';
 import { Navigate, Link } from 'react-router-dom';
@@ -7,7 +8,31 @@ import { Navigate, Link } from 'react-router-dom';
 export default function Register() {
   const dispatch = useDispatch();
   const auth = useSelector((s) => s.auth);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'student' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'student',
+    // optional profile fields
+    phone: '',
+    gender: '',
+    dob: '',
+    address: '',
+    collegeName: '',
+    department: '',
+    degree: '',
+    yearOfStudy: '',
+    cgpa: '',
+    tenthPercentage: '',
+    twelfthPercentage: '',
+    backlogs: '',
+    technicalSkills: '',
+    softSkills: '',
+    linkedin: '',
+    github: '',
+    portfolio: ''
+  });
+  const [showProfileFields, setShowProfileFields] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   if (auth.user) {
@@ -26,6 +51,26 @@ export default function Register() {
       if (register.fulfilled.match(resultAction)) {
         setRegistrationSuccess(true);
         setRegistrationMessage(resultAction.payload.message || 'Registration successful!');
+        // If user provided profile fields, save profile immediately using returned token
+        const token = resultAction.payload.token;
+        if (token && showProfileFields) {
+          try {
+            const data = new FormData();
+            // only include profile-related keys
+            [
+              'phone','gender','dob','address','collegeName','department','degree','yearOfStudy',
+              'cgpa','tenthPercentage','twelfthPercentage','backlogs','technicalSkills','softSkills',
+              'linkedin','github','portfolio','name','email'
+            ].forEach((k) => {
+              if (form[k] !== undefined && form[k] !== null && form[k] !== '') data.append(k, form[k]);
+            });
+
+            await studentProfileService.saveProfile(data, token);
+          } catch (err) {
+            console.error('Failed to save profile on registration:', err);
+            setRegistrationMessage((m) => m + ' (Profile save failed — you can edit your profile later)');
+          }
+        }
         // Clear form on successful registration
         setForm({ name: '', email: '', password: '', role: 'student' });
       }
@@ -183,6 +228,41 @@ export default function Register() {
                 <option value="admin">Admin</option>
               </select>
             </div>
+
+            {/* Toggle optional profile fields */}
+            {form.role === 'student' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input id="showProfileFields" type="checkbox" checked={showProfileFields} onChange={() => setShowProfileFields(s => !s)} />
+                <label htmlFor="showProfileFields" style={{ fontSize: 13, color: '#666' }}>Add student profile details now (optional)</label>
+              </div>
+            )}
+
+            {showProfileFields && (
+              <div style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#473E7A' }}>Student Profile (optional)</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <input name="phone" placeholder="Phone" value={form.phone} onChange={onChange} style={input} />
+                  <input name="gender" placeholder="Gender" value={form.gender} onChange={onChange} style={input} />
+                  <input name="dob" type="date" placeholder="Date of Birth" value={form.dob} onChange={onChange} style={input} />
+                  <input name="address" placeholder="Address" value={form.address} onChange={onChange} style={input} />
+                  <input name="collegeName" placeholder="College Name" value={form.collegeName} onChange={onChange} style={input} />
+                  <input name="department" placeholder="Department" value={form.department} onChange={onChange} style={input} />
+                  <input name="degree" placeholder="Degree" value={form.degree} onChange={onChange} style={input} />
+                  <input name="yearOfStudy" type="number" placeholder="Year of Study" value={form.yearOfStudy} onChange={onChange} style={input} />
+                  <input name="cgpa" type="number" placeholder="CGPA" value={form.cgpa} onChange={onChange} style={input} />
+                  <input name="tenthPercentage" type="number" placeholder="10th %" value={form.tenthPercentage} onChange={onChange} style={input} />
+                  <input name="twelfthPercentage" type="number" placeholder="12th %" value={form.twelfthPercentage} onChange={onChange} style={input} />
+                  <input name="backlogs" type="number" placeholder="Backlogs" value={form.backlogs} onChange={onChange} style={input} />
+                </div>
+                <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                  <textarea name="technicalSkills" placeholder="Technical Skills (comma separated)" value={form.technicalSkills} onChange={onChange} style={{ ...input, height: 60 }} />
+                  <textarea name="softSkills" placeholder="Soft Skills (comma separated)" value={form.softSkills} onChange={onChange} style={{ ...input, height: 60 }} />
+                  <input name="linkedin" placeholder="LinkedIn URL" value={form.linkedin} onChange={onChange} style={input} />
+                  <input name="github" placeholder="GitHub URL" value={form.github} onChange={onChange} style={input} />
+                  <input name="portfolio" placeholder="Portfolio URL" value={form.portfolio} onChange={onChange} style={input} />
+                </div>
+              </div>
+            )}
 
             {/* Submit */}
             <button

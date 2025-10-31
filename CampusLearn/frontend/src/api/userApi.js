@@ -45,6 +45,22 @@ const getUsers = async (token, role) => {
 };
 
 /**
+ * Create a new user (admin only)
+ */
+const createUser = async (token, payload) => {
+  try {
+    const response = await axios.post(USERS_ENDPOINT, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'Failed to create user');
+  }
+};
+
+/**
  * Get pending user approvals
  */
 const getPendingApprovals = async (token) => {
@@ -281,4 +297,5 @@ export default {
   getUserById,
   getStudentEnrollments,
   getStudentProfile
+  ,createUser
 };

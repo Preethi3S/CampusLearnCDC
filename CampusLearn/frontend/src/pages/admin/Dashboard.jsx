@@ -7,6 +7,7 @@ import CourseCard from '../../components/CourseCard';
 import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { logout } from '../../features/auth/authSlice';
 import userApi from '../../api/userApi';
+import studentProfileApi from '../../api/studentProfileApi';
 import CourseEnrollments from "./CourseEnrollment";
 import AdminMessageBoard from './AdminMessageBoard';
 
@@ -87,6 +88,7 @@ export default function AdminDashboard() {
     const [studentsError, setStudentsError] = useState(null);
     const [studentSearchQuery, setStudentSearchQuery] = useState('');
     const [deletingStudentId, setDeletingStudentId] = useState(null);
+    const [exportingStudentId, setExportingStudentId] = useState(null);
     const [pendingCount, setPendingCount] = useState(0);
     const [enrollments, setEnrollments] = useState([]);
     const [approvalsLoading, setApprovalsLoading] = useState(false);
@@ -94,6 +96,11 @@ export default function AdminDashboard() {
 
     // --- Data Loaders ---
     const [expandedCourses, setExpandedCourses] = useState({});
+
+    // Local state for creating a student inline
+    const [showCreateStudent, setShowCreateStudent] = useState(false);
+    const [createForm, setCreateForm] = useState({ name: '', email: '', password: '' });
+    const [createLoading, setCreateLoading] = useState(false);
 
     const loadEnrollments = useCallback(async () => {
         if (!auth?.token) return;
@@ -318,6 +325,47 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
+                        {showCreateStudent && (
+                            <div style={{ background: WHITE, padding: 16, borderRadius: 8, marginBottom: 16 }}>
+                                <h3 style={{ margin: 0, marginBottom: 8 }}>Create Student</h3>
+                                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                                    <input placeholder="Full name" value={createForm.name} onChange={e => setCreateForm(f => ({...f, name: e.target.value }))} style={{ padding: '8px 10px', flex: 1 }} />
+                                    <input placeholder="Email" value={createForm.email} onChange={e => setCreateForm(f => ({...f, email: e.target.value }))} style={{ padding: '8px 10px', width: 260 }} />
+                                    <input placeholder="Password" value={createForm.password} onChange={e => setCreateForm(f => ({...f, password: e.target.value }))} style={{ padding: '8px 10px', width: 200 }} />
+                                    <button
+                                        onClick={async () => {
+                                            if (!createForm.name || !createForm.email || !createForm.password) {
+                                                alert('Please fill name, email and password');
+                                                return;
+                                            }
+                                            setCreateLoading(true);
+                                            try {
+                                                const newUser = await userApi.createUser(auth.token, { name: createForm.name, email: createForm.email, password: createForm.password, role: 'student' });
+                                                // Optionally create a basic profile (admin can edit later)
+                                                try {
+                                                    await studentProfileApi.updateProfileById(newUser._id, { name: newUser.name, email: newUser.email }, auth.token);
+                                                } catch (err) {
+                                                    console.warn('Failed to create initial profile for student:', err);
+                                                }
+                                                // refresh students list
+                                                await loadStudentsAndApprovals();
+                                                setCreateForm({ name: '', email: '', password: '' });
+                                                setShowCreateStudent(false);
+                                            } catch (err) {
+                                                console.error('Create student failed', err);
+                                                alert(err.message || 'Failed to create student');
+                                            } finally {
+                                                setCreateLoading(false);
+                                            }
+                                        }}
+                                        style={{ ...buttonBaseStyle, background: ACCENT_COLOR, color: WHITE }}
+                                    >
+                                        {createLoading ? 'Creating...' : 'Create'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Controls: Search, Filter, Create */}
                         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center', background: WHITE, padding: 16, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                             <Link to="/admin/create-course" style={{ textDecoration: 'none' }}>
@@ -374,6 +422,33 @@ export default function AdminDashboard() {
                                 style={{ padding: '10px 14px', borderRadius: 6, border: `1px solid ${SOFT_BORDER_COLOR}`, flex: 1, minWidth: 250 }}
                             />
                             {studentsLoading && <div style={{ color: MUTE_GRAY }}>Loading data...</div>}
+                            <button
+                                onClick={() => setShowCreateStudent(s => !s)}
+                                style={{ ...buttonBaseStyle, background: PRIMARY_COLOR, color: WHITE }}
+                            >
+                                + Add Student
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const blob = await progressApi.exportEnrollments(null, auth.token);
+                                        const url = window.URL.createObjectURL(new Blob([blob]));
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `enrollments_${Date.now()}.csv`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        a.remove();
+                                        window.URL.revokeObjectURL(url);
+                                    } catch (err) {
+                                        console.error('Export failed', err);
+                                        alert('Failed to export enrollments. See console for details.');
+                                    }
+                                }}
+                                style={{ padding: '8px 12px', borderRadius: 6, border: `1px solid ${PRIMARY_COLOR}`, background: 'transparent', color: PRIMARY_COLOR, cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Export All CSV
+                            </button>
                         </div>
 
                         {/* Student Table */}
@@ -488,6 +563,43 @@ export default function AdminDashboard() {
                                                                     {isCurrentStudentDeleting ? 'Deleting...' : 'Delete'}
                                                                 </button>
                                                             )}
+
+                                                            {/* Export per-student CSV */}
+                                                            <div style={{ marginTop: 8 }}>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            setExportingStudentId(student._id);
+                                                                            const blob = await progressApi.exportEnrollments(student._id, auth.token);
+                                                                            const url = window.URL.createObjectURL(new Blob([blob]));
+                                                                            const a = document.createElement('a');
+                                                                            a.href = url;
+                                                                            a.download = `enrollments_${student._id}_${Date.now()}.csv`;
+                                                                            document.body.appendChild(a);
+                                                                            a.click();
+                                                                            a.remove();
+                                                                            window.URL.revokeObjectURL(url);
+                                                                        } catch (err) {
+                                                                            console.error('Student export failed', err);
+                                                                            alert('Failed to export student enrollments.');
+                                                                        } finally {
+                                                                            setExportingStudentId(null);
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        ...buttonBaseStyle,
+                                                                        padding: '6px 10px',
+                                                                        fontSize: 12,
+                                                                        background: 'transparent',
+                                                                        color: PRIMARY_COLOR,
+                                                                        border: `1px solid ${PRIMARY_COLOR}`,
+                                                                        margin: 0,
+                                                                    }}
+                                                                    disabled={exportingStudentId === student._id}
+                                                                >
+                                                                    {exportingStudentId === student._id ? 'Exporting...' : 'Export CSV'}
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );

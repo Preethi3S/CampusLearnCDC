@@ -7,6 +7,7 @@ const {
   completeModule,
   getAllEnrollments
 } = require('../controllers/progressController');
+const { exportAllEnrollmentsCsv } = require('../controllers/progressController');
 const { protect } = require('../middleware/authMiddleware');
 const { allowRoles } = require('../middleware/roleMiddleware');
 
@@ -21,5 +22,6 @@ router.post('/:courseId/levels/:levelId/modules/:moduleId/complete', allowRoles(
 
 // Admin-only routes
 router.get('/admin/enrollments', allowRoles('admin'), getAllEnrollments);
+router.get('/admin/enrollments/export', allowRoles('admin'), exportAllEnrollmentsCsv);
 
 module.exports = router;
