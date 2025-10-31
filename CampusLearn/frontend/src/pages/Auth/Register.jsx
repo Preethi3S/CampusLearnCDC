@@ -46,10 +46,23 @@ export default function Register() {
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      // use unwrap to reliably get the fulfilled payload or throw on rejection
-      const payload = await dispatch(register(form)).unwrap();
-      setRegistrationSuccess(true);
-      setRegistrationMessage(payload.message || 'Registration successful!');
+      const resultAction = await dispatch(register(form));
+      if (register.fulfilled.match(resultAction)) {
+        setRegistrationSuccess(true);
+        setRegistrationMessage(resultAction.payload.message || 'Registration successful!');
+        // If user provided profile fields, save profile immediately using returned token
+        const token = resultAction.payload.token;
+        if (token) {
+          try {
+            const data = new FormData();
+            // include all profile-related keys as they are now required
+            [
+              'phone','gender','dob','address','collegeName','department','degree','yearOfStudy',
+              'cgpa','tenthPercentage','twelfthPercentage','backlogs','technicalSkills','softSkills',
+              'linkedin','github','portfolio','name','email'
+            ].forEach((k) => {
+              data.append(k, form[k]);
+            });
 
       const token = payload.token;
       const serverData = payload;
@@ -196,26 +209,33 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Role */}
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 14, color: '#333' }}>Role</label>
-              <select
-                name="role"
-                value={form.role}
-                onChange={onChange}
-                style={{
-                  ...input,
-                  paddingLeft: 12,
-                  paddingRight: 12,
-                  appearance: 'none',
-                }}
-              >
-                <option value="student">Student</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
+            {/* Role is always student */}
+            <input type="hidden" name="role" value="student" />
 
-            {/* student profile fields are handled after registration on a dedicated page */}
+            <div style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#473E7A' }}>Student Profile Details</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <input name="phone" placeholder="Phone" value={form.phone} onChange={onChange} style={input} required />
+                  <input name="gender" placeholder="Gender" value={form.gender} onChange={onChange} style={input} required />
+                  <input name="dob" type="date" placeholder="Date of Birth" value={form.dob} onChange={onChange} style={input} required />
+                  <input name="address" placeholder="Address" value={form.address} onChange={onChange} style={input} required />
+                  <input name="collegeName" placeholder="College Name" value={form.collegeName} onChange={onChange} style={input} required />
+                  <input name="department" placeholder="Department" value={form.department} onChange={onChange} style={input} required />
+                  <input name="degree" placeholder="Degree" value={form.degree} onChange={onChange} style={input} required />
+                  <input name="yearOfStudy" type="number" placeholder="Year of Study" value={form.yearOfStudy} onChange={onChange} style={input} required />
+                  <input name="cgpa" type="number" placeholder="CGPA" value={form.cgpa} onChange={onChange} style={input} required />
+                  <input name="tenthPercentage" type="number" placeholder="10th %" value={form.tenthPercentage} onChange={onChange} style={input} required />
+                  <input name="twelfthPercentage" type="number" placeholder="12th %" value={form.twelfthPercentage} onChange={onChange} style={input} required />
+                  <input name="backlogs" type="number" placeholder="Backlogs" value={form.backlogs} onChange={onChange} style={input} required />
+                </div>
+                <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                  <textarea name="technicalSkills" placeholder="Technical Skills (comma separated)" value={form.technicalSkills} onChange={onChange} style={{ ...input, height: 60 }} required />
+                  <textarea name="softSkills" placeholder="Soft Skills (comma separated)" value={form.softSkills} onChange={onChange} style={{ ...input, height: 60 }} required />
+                  <input name="linkedin" placeholder="LinkedIn URL" value={form.linkedin} onChange={onChange} style={input} required />
+                  <input name="github" placeholder="GitHub URL" value={form.github} onChange={onChange} style={input} required />
+                  <input name="portfolio" placeholder="Portfolio URL" value={form.portfolio} onChange={onChange} style={input} required />
+                </div>
+              </div>
 
             {/* Submit */}
             <button
