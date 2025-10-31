@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axios from "axios";
+import userApi from '../../api/userApi';
 import { FaUserCircle, FaGithub, FaLinkedin, FaGlobe } from "react-icons/fa";
 
 const styles = {
@@ -186,6 +187,8 @@ const StudentProfile = () => {
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [enrollments, setEnrollments] = useState([]);
+  const [enrollLoading, setEnrollLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -222,6 +225,22 @@ const StudentProfile = () => {
     };
 
     if (user?.token && studentId) fetchProfile();
+    // fetch enrollments for this student
+    const fetchEnrollments = async () => {
+      if (!authToken || !studentId) return;
+      try {
+        setEnrollLoading(true);
+        // use api helper if available
+        const data = await userApi.getStudentEnrollments(authToken || user?.token, studentId);
+        setEnrollments(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error fetching enrollments:', err);
+        setEnrollments([]);
+      } finally {
+        setEnrollLoading(false);
+      }
+    };
+    fetchEnrollments();
   }, [user?.token, studentId]);
 
   if (loading)
@@ -498,6 +517,62 @@ const StudentProfile = () => {
         >
           ← Back
         </button>
+      </div>
+      {/* Enrollments Card */}
+      <div style={styles.card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ ...styles.sectionTitle, margin: 0 }}>Enrollments</h2>
+          <span style={{ fontSize: '14px', color: '#6B7280' }}>{enrollments.length} courses</span>
+        </div>
+
+        {enrollLoading ? (
+          <div style={{ padding: 20, textAlign: 'center', color: '#6B7280' }}>Loading enrollments...</div>
+        ) : enrollments.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <p style={{ color: '#6B7280' }}>No enrollments found for this student.</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Course</th>
+                  <th style={styles.th}>Enrollment Date</th>
+                  <th style={styles.th}>Status</th>
+                  <th style={styles.th}>Progress</th>
+                </tr>
+              </thead>
+              <tbody>
+                {enrollments.map((enrollment) => (
+                  <tr key={enrollment._id || enrollment.course?._id}>
+                    <td style={styles.td}>
+                      <div style={{ fontWeight: '500' }}>{enrollment.course?.title || 'Unknown Course'}</div>
+                      <div style={{ fontSize: '14px', color: '#6B7280' }}>
+                        {enrollment.course?.code || ''}
+                      </div>
+                    </td>
+                    <td style={styles.td}>
+                      {enrollment.enrolledAt ? new Date(enrollment.enrolledAt).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td style={styles.td}>
+                      <span style={enrollment.status === 'active' ? styles.statusActive : styles.statusInactive}>
+                        {enrollment.status || 'inactive'}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      <div style={styles.progressBar}>
+                        <div style={{ ...styles.progressFill, width: `${enrollment.progress || 0}%` }} />
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '14px', color: '#6B7280', marginTop: '4px' }}>
+                        {enrollment.progress || 0}%
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
